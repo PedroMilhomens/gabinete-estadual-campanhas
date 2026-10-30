@@ -1,0 +1,84 @@
+.legal-page {
+  min-height: 100svh;
+  box-sizing: border-box;
+  padding: 40px 20px;
+  background:
+    radial-gradient(ellipse at 82% 12%, rgb(222 235 255 / 62%), transparent 28rem),
+    radial-gradient(ellipse at 12% 88%, rgb(232 224 255 / 48%), transparent 24rem),
+    #f7f8fb;
+}
+
+.legal-card {
+  width: min(100%, 800px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid #e6e9f0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgb(22 34 62 / 9%);
+}
+
+.legal-home-link {
+  display: inline-block;
+  margin-bottom: 32px;
+  color: #354e83;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.legal-card h1 {
+  margin: 8px 0;
+  color: #192743;
+  font-size: clamp(30px, 6vw, 42px);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.legal-updated {
+  margin-bottom: 28px;
+  color: #8490a3;
+  font-size: 12px;
+}
+
+.legal-card section {
+  margin-top: 24px;
+}
+
+.legal-card section h2 {
+  margin: 0 0 8px;
+  color: #253550;
+  font-size: 17px;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.legal-card section p {
+  color: #59677e;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 1.75;
+}
+
+.legal-card section p a,
+.legal-card section p .link {
+  color: #354e83;
+  text-underline-offset: 3px;
+}
+
+.legal-card a:not(.legal-home-link) {
+  color: #354e83;
+  text-underline-offset: 3px;
+}
+
+.legal-nav {
+  display: flex;
+  gap: 18px;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid #e6e9f0;
+  font-size: 13px;
+  font-weight: 650;
+}
