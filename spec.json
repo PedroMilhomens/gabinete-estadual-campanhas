@@ -1,0 +1,203 @@
+{
+  "spec_version": "1.0",
+  "project": "demolay-ro-campaigns",
+  "purpose": "Web app where DeMolay-RO chapter officers submit state campaign activities and reviewers grade them.",
+  "ui_language": "pt-BR",
+  "code_language": "en",
+  "out_of_scope": ["hosting", "deployment", "domain", "google_login", "paid_services", "payment_methods"],
+
+  "agent_rules": {
+    "R01": "DO NOT write from scratch what a maintained free library already does. Name the library before coding.",
+    "R02": "Follow official Supabase docs for Auth, RLS, Storage, Edge Functions. No custom auth, no custom crypto, no custom session handling.",
+    "R03": "Free tiers only. No dependency requiring a credit card or paid plan.",
+    "R04": "One table or one screen per change. Small diffs. Run build + lint + tests before declaring done.",
+    "R05": "Never install a package without stating name and reason. Prefer packages with recent releases and high usage.",
+    "R06": "Authorization lives in the database (RLS), never only in the UI.",
+    "R07": "No secrets in code or in git. Only VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY reach the client.",
+    "R08": "Validate every input with zod on client and on server (Edge Function / DB constraints).",
+    "R09": "Never log personal data. Never put personal data in URLs.",
+    "R10": "Email + password auth only. No OAuth providers."
+  },
+
+  "stack": {
+    "frontend": ["vite", "react", "typescript(strict)", "react-router", "react-hook-form", "zod", "@hookform/resolvers", "@tanstack/react-table", "@tanstack/react-query", "react-dropzone", "dompurify", "shadcn/ui+tailwind"],
+    "backend": {
+      "platform": "supabase",
+      "use": ["postgres", "auth", "storage", "rls", "database_webhooks", "edge_functions"],
+      "client": "@supabase/supabase-js"
+    },
+    "email": {
+      "auth_emails": "custom SMTP configured in Supabase Auth (free provider: Brevo or Resend)",
+      "app_emails": "Edge Function calling provider HTTP API with official SDK or fetch",
+      "note": "Built-in Supabase mailer is rate-limited; do not rely on it."
+    },
+    "testing": ["vitest", "@testing-library/react", "playwright(optional)"],
+    "tooling": ["eslint", "prettier", "tsc --noEmit"]
+  },
+
+  "roles": {
+    "member": "chapter officer; submits activities for own chapter; requires status=approved",
+    "reviewer": "grades submissions of all chapters; cannot manage users",
+    "admin": "reviewer + approve/reject users + manage campaigns, activities, chapters"
+  },
+
+  "enums": {
+    "user_status": ["pending", "approved", "rejected"],
+    "user_role": ["member", "reviewer", "admin"],
+    "submission_status": ["draft", "submitted", "returned", "approved"]
+  },
+
+  "data_model": {
+    "chapters": ["id uuid pk", "name text not null", "number int", "city text"],
+    "profiles": ["id uuid pk fk auth.users on delete cascade", "full_name text not null", "chapter_id uuid fk chapters", "position text", "role user_role not null default 'member'", "status user_status not null default 'pending'", "terms_accepted_at timestamptz", "guardian_consent_at timestamptz null", "created_at timestamptz default now()"],
+    "campaigns": ["id uuid pk", "name text not null", "starts_at date", "ends_at date", "active bool default true"],
+    "activities": ["id uuid pk", "campaign_id uuid fk", "name text not null", "description text", "points int check (points >= 0)", "due_at timestamptz"],
+    "submissions": ["id uuid pk", "activity_id uuid fk", "chapter_id uuid fk", "submitted_by uuid fk profiles", "description text check (char_length(description) <= 5000)", "status submission_status default 'draft'", "score int check (score >= 0)", "reviewed_by uuid fk profiles null", "reviewed_at timestamptz null", "created_at timestamptz default now()", "unique(activity_id, chapter_id)"],
+    "attachments": ["id uuid pk", "submission_id uuid fk on delete cascade", "storage_path text not null", "mime text not null", "size_bytes int not null check (size_bytes <= 5242880)"],
+    "comments": ["id uuid pk", "submission_id uuid fk on delete cascade", "author_id uuid fk profiles", "body text check (char_length(body) <= 2000)", "created_at timestamptz default now()"],
+    "audit_log": ["id bigint pk identity", "actor_id uuid", "action text", "table_name text", "record_id text", "created_at timestamptz default now()"]
+  },
+
+  "db_helpers": {
+    "is_approved()": "security definer; true if auth.uid() has profiles.status='approved'",
+    "current_role()": "security definer; returns profiles.role for auth.uid()",
+    "current_chapter()": "security definer; returns profiles.chapter_id for auth.uid()",
+    "trigger_on_signup": "after insert on auth.users -> insert profiles(status='pending', role='member')",
+    "trigger_protect_profile": "before update on profiles: if actor is not admin, block changes to role, status, chapter_id",
+    "trigger_audit": "after insert/update/delete on submissions(score,status), profiles(role,status) -> audit_log",
+    "set_search_path": "all security definer functions must set search_path = public"
+  },
+
+  "rls": {
+    "global": "ENABLE and FORCE RLS on every table in public. Default deny. Never create 'using (true)' policies for authenticated.",
+    "profiles": {
+      "select": "id = auth.uid() OR current_role() in ('reviewer','admin')",
+      "update": "admin only (members may update only full_name, via trigger guard)",
+      "insert": "none from client (created by signup trigger)",
+      "delete": "admin only"
+    },
+    "chapters": {"select": "is_approved()", "write": "admin only"},
+    "campaigns": {"select": "is_approved()", "write": "admin only"},
+    "activities": {"select": "is_approved()", "write": "admin only"},
+    "submissions": {
+      "select": "is_approved() AND (chapter_id = current_chapter() OR current_role() in ('reviewer','admin'))",
+      "insert": "is_approved() AND chapter_id = current_chapter() AND submitted_by = auth.uid() AND status in ('draft','submitted')",
+      "update_member": "is_approved() AND chapter_id = current_chapter() AND status in ('draft','returned') AND score is not changed",
+      "update_reviewer": "current_role() in ('reviewer','admin'); may set status in ('returned','approved'), score, reviewed_by, reviewed_at",
+      "delete": "member only own draft; admin any"
+    },
+    "attachments": {"select": "same visibility as parent submission", "insert": "only on own chapter's submission with status in ('draft','returned')", "delete": "same as insert or admin"},
+    "comments": {"select": "same visibility as parent submission", "insert": "any user who can see the submission; author_id = auth.uid()", "update_delete": "none"},
+    "audit_log": {"select": "admin only", "write": "triggers only"}
+  },
+
+  "storage": {
+    "bucket": "attachments",
+    "public": false,
+    "path_pattern": "{chapter_id}/{submission_id}/{uuid}.{ext}",
+    "policies": "mirror attachments table policies; members only inside own chapter_id prefix; reviewers/admins read all",
+    "allowed_mime": ["image/jpeg", "image/png", "application/pdf"],
+    "max_size_bytes": 5242880,
+    "access": "signed URLs only, expiry <= 300s, generated on demand",
+    "client_checks": "mime + size before upload; rename file to uuid; never trust filename"
+  },
+
+  "auth_flow": [
+    "S1 signup(email, password, full_name, chapter_id, position, terms_accepted=true) via supabase.auth.signUp; email confirmation REQUIRED",
+    "S2 trigger creates profiles row status=pending",
+    "S3 pending user can sign in but router shows only /awaiting-approval; DB denies all data via is_approved()",
+    "S4 Edge Function notify_new_signup (DB webhook on profiles insert) emails all reviewers/admins",
+    "S5 admin approves/rejects in /admin/users; update writes status + audit_log",
+    "S6 Edge Function notify_user_decision (DB webhook on profiles.status update) emails the user: approved or rejected",
+    "S7 on approval user gets full access on next session refresh"
+  ],
+  "auth_rules": {
+    "email_confirmation": true,
+    "password_min_length": 10,
+    "leaked_password_protection": "enable in Supabase Auth settings if available",
+    "signup_captcha": "Cloudflare Turnstile or hCaptcha on signup and login",
+    "email_domain_policy": "chapter email as provided; optional allowlist table (allowed_emails) checked in signup trigger, reject if not listed",
+    "session": "supabase-js default; no tokens in localStorage manually; sign out on role change",
+    "oauth_providers": "disabled"
+  },
+
+  "routes": {
+    "public": ["/login", "/signup", "/privacy", "/terms", "/awaiting-approval"],
+    "member": ["/campaigns", "/campaigns/:id", "/activities/:id/submit", "/my-submissions", "/my-submissions/:id", "/ranking"],
+    "reviewer": ["/review", "/review/:submissionId", "/ranking", "/export"],
+    "admin": ["/admin/users", "/admin/campaigns", "/admin/activities", "/admin/chapters", "/admin/audit"],
+    "guards": "RouteGuard component checks session, status=approved, role; UI guard is convenience only (R06)"
+  },
+
+  "features": {
+    "member": ["list open campaigns and activities with due date and points", "submit activity: description + up to 5 attachments", "save draft", "see status, score, reviewer comments", "edit and resubmit when returned", "view chapter total and ranking"],
+    "reviewer": ["table of submissions with filters: chapter, campaign, activity, status", "review screen: preview attachment via signed URL, set score <= activity.points, approve or return with comment", "ranking per chapter", "CSV export"],
+    "admin": ["approve/reject/deactivate users, change role", "CRUD campaigns, activities, chapters", "view audit log"]
+  },
+
+  "security_requirements": {
+    "S01": "RLS enabled and forced on all tables; verified by tests as each role.",
+    "S02": "service_role key only inside Edge Functions secrets; never in client, repo or logs.",
+    "S03": "Privilege escalation blocked: members cannot change own role/status/chapter (trigger + policy).",
+    "S04": "Reviewer score validated server-side: 0 <= score <= activities.points.",
+    "S05": "Private storage bucket + signed URLs short-lived + mime/size enforced.",
+    "S06": "All forms validated with zod; DB constraints mirror limits.",
+    "S07": "Render user text as plain text. If HTML is ever needed, sanitize with DOMPurify. No dangerouslySetInnerHTML with raw input.",
+    "S08": "Security headers set in the static host config: Content-Security-Policy (self + Supabase origin + captcha origin), X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, frame-ancestors 'none'.",
+    "S09": "CAPTCHA on signup/login; rely on Supabase Auth rate limits; generic error messages (no user enumeration).",
+    "S10": "Edge Functions: verify JWT, verify caller role, validate payload, verify webhook secret, no open email relay (recipient list built server-side, never from request body).",
+    "S11": "audit_log for approvals, role changes, score changes.",
+    "S12": "Minimal admins (<= 3); document 2FA requirement for admins on GitHub, Supabase, email accounts.",
+    "S13": "Dependencies: lockfile committed; run npm audit; enable Dependabot; no abandoned packages.",
+    "S14": "Backup routine: scheduled export script (pg_dump or CSV via Supabase) stored outside Supabase; document restore steps.",
+    "S15": "Fail closed: on any authorization doubt, deny."
+  },
+
+  "lgpd_requirements": {
+    "L01": "Data minimization: only full_name, chapter email, chapter, position, submission content. No CPF, address, phone.",
+    "L02": "Privacy policy and terms pages; signup requires explicit acceptance; store terms_accepted_at.",
+    "L03": "Many users may be under 18: show guardian-consent notice; store guardian_consent_at when required by the Order's process; apply best-interest principle (LGPD art. 14).",
+    "L04": "Attachments guidance in UI: avoid identifiable faces of minors unless authorized.",
+    "L05": "Data subject rights: contact email on /privacy; admin function to export and delete a user's data (cascade delete profile, submissions, attachments, storage objects).",
+    "L06": "Retention: configurable job/script to delete submissions and attachments N months after campaign end.",
+    "L07": "Access restricted by role; personal data visible only to reviewers/admins and the owner chapter.",
+    "L08": "Incident plan documented in docs/INCIDENT.md: rotate keys, revoke sessions, notify affected users and the Order.",
+    "L09": "No analytics/trackers or third-party scripts that collect personal data."
+  },
+
+  "tests_required": [
+    "member of chapter A cannot select submissions of chapter B",
+    "pending user cannot select any data table",
+    "rejected user cannot select any data table",
+    "member cannot update own role, status or chapter_id",
+    "member cannot set score or approve own submission",
+    "reviewer cannot change user role or status",
+    "reviewer score above activity.points is rejected",
+    "upload with disallowed mime or size > 5 MB is rejected",
+    "storage object of chapter B not readable by member of chapter A",
+    "unauthenticated request returns nothing on every table",
+    "signup creates profile with status=pending and role=member regardless of client payload",
+    "Edge Functions reject calls without valid JWT or webhook secret"
+  ],
+
+  "definition_of_done": [
+    "tsc, eslint, build and tests pass",
+    "all tests_required pass",
+    "no secrets in repo history",
+    "README lists env vars and setup of Supabase, SMTP and webhooks",
+    "S01-S15 and L01-L09 each mapped to implemented code or documented gap"
+  ],
+
+  "build_order": [
+    "B1 supabase schema + enums + helpers + triggers",
+    "B2 RLS policies + storage policies + tests_required (DB level)",
+    "B3 auth screens + approval gate + awaiting-approval",
+    "B4 admin users screen (approve/reject)",
+    "B5 campaigns/activities read for members + admin CRUD",
+    "B6 submission form + upload + my-submissions",
+    "B7 reviewer table + review screen + ranking + CSV",
+    "B8 Edge Functions for emails + webhooks",
+    "B9 privacy/terms pages + LGPD functions",
+    "B10 security headers config + audit + backup script"
+  ]
+}

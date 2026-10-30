@@ -1,0 +1,13 @@
+react
+react-dom
+react-router-dom
+@supabase/supabase-js
+@tanstack/react-query
+@tanstack/react-table
+react-hook-form
+@hookform/resolvers
+zod
+react-dropzone
+dompurify
+tailwindcss
+@tailwindcss/vite

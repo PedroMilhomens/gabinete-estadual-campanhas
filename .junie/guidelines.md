@@ -1,0 +1,1 @@
+Always follow spec.json in the project root. Obey agent-rules, security-requirements and lgpd_requirements. Use esxisting free libraries, never write auth or crypto from scratch, enable RLS on every table, never expose service_role. Work one build_order step at a time and run build, lint and tests before finishing.
