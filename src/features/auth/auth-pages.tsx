@@ -10,6 +10,7 @@ import {
   type LoginFormValues,
   type SignupFormValues,
 } from './auth-schema'
+import { getAuthFailureMessage } from './auth-errors'
 import { CaptchaField } from './captcha-field'
 import { useAuth } from './use-auth'
 import './auth.css'
@@ -145,7 +146,7 @@ export function LoginPage() {
       })
 
       if (signInError) {
-        setMessage('Não foi possível entrar. Verifique seus dados e tente novamente.')
+        setMessage(getAuthFailureMessage(signInError.message, 'login'))
         setCaptchaToken(null)
         setCaptchaKey((value) => value + 1)
       } else {
@@ -307,9 +308,7 @@ export function SignupPage() {
       })
 
       if (signUpError) {
-        setMessage(
-          'Não foi possível criar a conta. Confira os dados e tente novamente.',
-        )
+        setMessage(getAuthFailureMessage(signUpError.message, 'signup'))
         setCaptchaToken(null)
         setCaptchaKey((value) => value + 1)
         return

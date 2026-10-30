@@ -185,6 +185,12 @@ minimum_password_length = 6
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
 
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+# Cloudflare's public test secret; use real credentials in the hosted Supabase dashboard.
+secret = "1x0000000000000000000000000000000AA"
+
 # Configure passkey sign-ins.
 # [auth.passkey]
 # enabled = false
