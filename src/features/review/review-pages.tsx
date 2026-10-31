@@ -4,6 +4,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { z } from 'zod'
 import { useAuth } from '../auth/use-auth'
+import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
+import { SITE_NAME } from '../../config/site'
 import {
   calculateChapterRankings,
   csvCell,
@@ -60,16 +62,30 @@ function formatDate(value: string) {
     : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
 }
 
-function ReviewFrame({ children }: { children: ReactNode }) {
+function ReviewFrame({
+  children,
+  memberRanking = false,
+}: {
+  children: ReactNode
+  memberRanking?: boolean
+}) {
   const { profile } = useAuth()
 
   return (
-    <main className="review-page">
+    <main
+      className={`review-page${memberRanking ? ' review-page--member-ranking' : ''}${profile?.role === 'reviewer' || profile?.role === 'admin' ? ' review-page--staff' : ''}`}
+    >
       <header className="review-header">
         <Link className="review-brand" to="/campaigns">
-          <span className="review-brand-mark" aria-hidden="true">D</span>
+          <img
+            className="review-brand-mark"
+            src={emblem}
+            width={40}
+            height={40}
+            alt="Emblema Virtudes Atemporais"
+          />
           <span>
-            <strong>DeMolay Rondônia</strong>
+            <strong>{SITE_NAME}</strong>
             <small>Campanhas estaduais</small>
           </span>
         </Link>
@@ -592,7 +608,7 @@ export function RankingPage() {
   )
 
   return (
-    <ReviewFrame>
+    <ReviewFrame memberRanking={profile?.role === 'member'}>
       <PageTitle
         eyebrow="Resultados"
         title="Ranking por capítulo"

@@ -109,7 +109,9 @@
     "S4 Edge Function notify_new_signup (DB webhook on profiles insert) emails all reviewers/admins",
     "S5 admin approves/rejects in /admin/users; update writes status + audit_log",
     "S6 Edge Function notify_user_decision (DB webhook on profiles.status update) emails the user: approved or rejected",
-    "S7 on approval user gets full access on next session refresh"
+    "S7 on approval user gets full access on next session refresh",
+    "S8 password reset: /forgot-password -> supabase.auth.resetPasswordForEmail (captcha, generic response) -> email link -> /reset-password (PASSWORD_RECOVERY session) -> supabase.auth.updateUser({password}) -> signOut -> /login",
+    "S9 reset emails go through the custom SMTP; Supabase Redirect URLs allowlist must include /reset-password"
   ],
   "auth_rules": {
     "email_confirmation": true,
@@ -122,7 +124,7 @@
   },
 
   "routes": {
-    "public": ["/login", "/signup", "/privacy", "/terms", "/awaiting-approval"],
+    "public": ["/login", "/signup", "/forgot-password", "/reset-password", "/privacy", "/terms", "/awaiting-approval"],
     "member": ["/campaigns", "/campaigns/:id", "/activities/:id/submit", "/my-submissions", "/my-submissions/:id", "/ranking"],
     "reviewer": ["/review", "/review/:submissionId", "/ranking", "/export"],
     "admin": ["/admin/users", "/admin/campaigns", "/admin/activities", "/admin/chapters", "/admin/audit"],
@@ -177,7 +179,14 @@
     "storage object of chapter B not readable by member of chapter A",
     "unauthenticated request returns nothing on every table",
     "signup creates profile with status=pending and role=member regardless of client payload",
-    "Edge Functions reject calls without valid JWT or webhook secret"
+    "Edge Functions reject calls without valid JWT or webhook secret",
+    "forgot-password shows the same generic message for registered and unregistered emails",
+    "reset-password without a recovery session shows the invalid/expired link state and never calls updateUser",
+    "reset-password rejects passwords shorter than 10 characters or a mismatched confirmation",
+    "after a successful password update the user is signed out and redirected to /login",
+    "pending and rejected users can open /forgot-password and /reset-password",
+    "smoke check in dev and in the production build: deep links to, and client-side navigation between, all routes render fully styled pages with no CSS, 404, MIME or CSP errors",
+    "grep check: the old site name 'DeMolay Rondônia' does not appear in src/, index.html, public/ or supabase/functions/"
   ],
 
   "definition_of_done": [
@@ -185,7 +194,8 @@
     "all tests_required pass",
     "no secrets in repo history",
     "README lists env vars and setup of Supabase, SMTP and webhooks",
-    "S01-S15 and L01-L09 each mapped to implemented code or documented gap"
+    "S01-S15 and L01-L09 each mapped to implemented code or documented gap",
+    "update_requests U1-U3 each completed through steps B11-B17; root cause of the CSS bug documented"
   ],
 
   "build_order": [
@@ -198,6 +208,127 @@
     "B7 reviewer table + review screen + ranking + CSV",
     "B8 Edge Functions for emails + webhooks",
     "B9 privacy/terms pages + LGPD functions",
-    "B10 security headers config + audit + backup script"
-  ]
+    "B10 security headers config + audit + backup script",
+    "B11 [U1] fix intermittent missing CSS (reproduces on localhost and in production): reproduce and diagnose locally first, then fix only confirmed causes among C1-C9; document root cause",
+    "B12 [U2] password reset: /forgot-password + /reset-password + login link + RouteGuard allowances + tests; document Supabase dashboard steps in README",
+    "B13 [U3] branding foundation: SITE_NAME constant + rename all occurrences + emblem assets and favicon + design tokens sampled from the emblem + self-hosted Inter font; no layout changes yet",
+    "B14 [U3] app shell and access screens redesign: header, sidebar, /login, /signup, /forgot-password, /reset-password, /awaiting-approval, /privacy, /terms",
+    "B15 [U3] member screens redesign: /campaigns, /campaigns/:id, /activities/:id/submit, /my-submissions, /my-submissions/:id, /ranking",
+    "B16 [U3] reviewer and admin screens redesign: /review, /review/:submissionId, /export, /admin/*",
+    "B17 final QA: responsive check at 360/768/1280, WCAG AA contrast, keyboard navigation, tsc + eslint + build + tests, README update"
+  ],
+
+  "update_requests": {
+    "source_file": "update.txt",
+    "how_to_use": "Execute B11-B17 in order, one step per change (R04). update.txt holds the same requests in prose with more context.",
+    "scope_note": "Front-end only. No changes to schema, RLS, storage or Edge Function logic. Repo config files (vercel.json, vite.config.ts, index.html, tailwind config) are in scope; hosting or account operations stay out_of_scope, so document dashboard steps in README instead of automating them.",
+
+    "U1_css_bug": {
+      "symptom": "CSS is intermittently missing: some pages are styled and others are not. It happens on localhost (npm run dev) AND in production, so the cause is in the project code or config, not in Vercel.",
+      "principle": "Because it reproduces locally, debug locally first with the dev server. Production-only causes (cache headers, rewrites, CSP, project settings) are checked last, and only if the bug still appears in the deployed build.",
+      "diagnose_first": [
+        "on localhost open a failing route and inspect an unstyled element in DevTools Elements: is the class on the element but with no matching rule (Tailwind did not generate it), or is the whole stylesheet missing (Network, filter CSS)?",
+        "DevTools Network: is the main stylesheet requested on the failing route, with status 200 and content-type text/css?",
+        "check the dev server terminal and the browser Console for Tailwind or PostCSS errors, 'Failed to resolve import', 'Failed to fetch dynamically imported module', CSS parse errors and the Vite error overlay",
+        "record when it happens: first load, client-side navigation between pages, hard refresh, or after saving a file (HMR). Also test whether it disappears after deleting node_modules/.vite and restarting the dev server",
+        "compare 'npm run dev' with 'npm run build && npm run preview': failing in both points to config or CSS import structure; failing only in preview points to purge, minification or chunking"
+      ],
+      "likely_causes": [
+        "C1 Tailwind content globs do not cover every folder that holds classes (src/components/ui, src/pages, index.html...). Classes used only in uncovered files are never generated, so only some pages look broken. Check tailwind.config content (v3) or source detection (v4) and components.json",
+        "C2 global CSS imported in the wrong place: index.css (with the Tailwind directives or import) must be imported exactly once, in src/main.tsx, never inside a page or lazy component. Remove leftover Vite template CSS (App.css, duplicated index.css) and make sure there is a single Tailwind setup (no v3 and v4 mixed, no tailwind.config together with a conflicting @theme)",
+        "C3 CSS imported by individual route components or lazy chunks (import './Page.css'): load order changes with navigation, so one page's rules override or leak into another, and a failed lazy chunk drops that page's styles. Move shared rules to the global file or to Tailwind classes and avoid unscoped page CSS",
+        "C4 relative stylesheet or asset URLs (<link href='styles.css'>, url(images/x.png) in CSS, public/ files referenced without a leading slash) break on nested routes like /my-submissions/123, in dev and in production. Use absolute paths starting with '/' and vite base '/'",
+        "C5 dynamically built class names (bg-${color}-500) are never generated by Tailwind, and neither are classes that come from the database. Use full literal class names or a lookup map",
+        "C6 PostCSS or Vite config problems: missing or misnamed postcss config, wrong plugin (@tailwindcss/vite vs PostCSS plugin), duplicated configs (.js and .cjs), stale cache in node_modules/.vite",
+        "C7 shadcn/ui setup: components.json css path points to a file that is not the one imported, CSS variables (--background, --foreground, --primary...) missing from :root, or the dark class toggled inconsistently, so some components render without colors",
+        "C8 filename or case mismatch in imports and assets (spaces, accents, Logo.png vs logo.png). Works on Windows and macOS, fails on Linux builds. Use lowercase ASCII kebab-case names",
+        "C9 production only, check last: stale index.html pointing to removed hashed files after a deploy, SPA fallback returning index.html for a missing asset (CSS served as text/html), CSP from S08 blocking inline styles used by shadcn/Radix, Vercel project settings (Framework Preset Vite, build 'npm run build', output 'dist', Node version in package.json engines, lockfile committed; dashboard step, document in README)"
+      ],
+      "production_hardening_only_if_deployed_build_still_fails": [
+        "Cache-Control no-cache on index.html and 'public, max-age=31536000, immutable' on /assets/*",
+        "listener for the 'vite:preloadError' event that reloads the page once",
+        "vercel.json: /assets/* is never rewritten; the SPA fallback applies only to non-file paths",
+        "CSP: allow 'unsafe-inline' for style-src only, never loosen script-src"
+      ],
+      "if_cause_not_found": "stop and report instead of guessing: the failing routes, DevTools Elements and Network evidence, tailwind and postcss/vite configs, src/main.tsx and index.css",
+      "acceptance": [
+        "with 'npm run dev', every route is fully styled on first load, on client-side navigation between all routes and on hard refresh of a deep link",
+        "same result with 'npm run build && npm run preview' and on the deployed site",
+        "no CSS, PostCSS or Tailwind errors in the terminal or Console; no 404, MIME or CSP errors in Network on /login and /campaigns",
+        "a smoke test or a documented manual checklist visits every route",
+        "confirmed root cause written in the PR description and docs/CHANGELOG.md; no fixes applied for causes that were not observed"
+      ]
+    },
+
+    "U2_password_reset": {
+      "library": "supabase-js built-in resetPasswordForEmail and updateUser (R01, R02). No custom tokens.",
+      "routes": ["/forgot-password", "/reset-password"],
+      "flow": [
+        "add the link 'Esqueci minha senha' on /login pointing to /forgot-password",
+        "/forgot-password: form with email and captcha token. Call supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password', captchaToken }). Always show the same message: 'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.' (S09). Disable the button for 60 seconds after sending",
+        "/reset-password: listen to supabase.auth.onAuthStateChange for the 'PASSWORD_RECOVERY' event and also check for an existing recovery session. Without one, show 'Link inválido ou expirado' with a button to /forgot-password and do not call updateUser",
+        "form with new password and confirmation, validated with zod: min 10 characters (auth_rules.password_min_length) and both fields equal. Call supabase.auth.updateUser({ password }). On success call supabase.auth.signOut(), show a success notice and redirect to /login",
+        "RouteGuard must let both routes through for any user, including pending and rejected, and must not redirect a user in a recovery session before the password is changed",
+        "never log the email or tokens (R09); never parse the token from the URL manually, supabase-js handles it"
+      ],
+      "manual_steps_document_in_readme": [
+        "Supabase Authentication > URL Configuration: add production URL, /reset-password and localhost to Redirect URLs",
+        "Supabase Authentication > Email Templates: set 'Reset Password' and 'Confirm signup' in pt-BR with the new site name",
+        "confirm custom SMTP is configured (built-in mailer is rate-limited)"
+      ],
+      "acceptance": [
+        "full flow works: request link, open email, set new password, sign in with it",
+        "tests listed in tests_required for password reset pass"
+      ]
+    },
+
+    "U3_branding_redesign": {
+      "rename": {
+        "from": "DeMolay Rondônia",
+        "to": "Gabinete Estadual de Rondônia",
+        "single_source": "src/config/site.ts exports SITE_NAME; use it everywhere",
+        "search_variants": ["DeMolay Rondônia", "DeMolay Rondonia", "DeMolay RO", "DeMolay-RO"],
+        "replace_in": ["page title and meta tags", "header and footer", "login and signup screens", "emails sent by Edge Functions", "README"],
+        "do_not_rename": ["package name", "repository", "database identifiers", "the 'demolay-ro-campaigns' project key"],
+        "keep_when": "the text refers to the Order DeMolay itself and not to the site name",
+        "legal_pages": "on /privacy and /terms change only the name and leave a PR note requesting human review of the legal text"
+      },
+      "brand_assets": {
+        "reference_image": "img/EMBLEMA VIRTUDES ATEMPORAIS.png",
+        "reference_role": "This file is THE visual reference for the whole rebranding: read it (open the image) before any design work. Colors, mood, shapes and level of formality of the new UI must follow what is in this emblem. Do not move, rename, edit or delete it; keep it in img/ as the source of truth.",
+        "source": "img/EMBLEMA VIRTUDES ATEMPORAIS.png",
+        "target": "src/assets/brand/emblema-virtudes-atemporais.png",
+        "target_note": "copy the source to target (the original keeps its name in img/); the app imports only the copy, never the file in img/",
+        "also_generate": ["public/favicon (32 px)", "apple-touch icon 180 px", "icons 192 px and 512 px"],
+        "rules": "lowercase ASCII kebab-case filenames for everything the app references (see C8), which is why the copy is renamed; width and height attributes on images; alt='Emblema Virtudes Atemporais'"
+      },
+      "palette": {
+        "method": "Sample the dominant blue, green and gold directly from img/EMBLEMA VIRTUDES ATEMPORAIS.png with an eyedropper, or with a throwaway node-vibrant script run against that path and not kept as an app dependency. Do not guess hex values. Record them, with the source path, in docs/design-tokens.md.",
+        "tokens": "define CSS variables in src/index.css mapped to shadcn tokens: --primary (blue), --secondary and --accent (green), a gold token for highlights, neutral grays. No hardcoded hex inside components.",
+        "contrast": "WCAG AA: 4.5:1 for body text, 3:1 for large text. Gold usually fails as text on white, so use it for borders, icons, badges, dividers and large headings on dark blue; use dark blue for text and buttons."
+      },
+      "design_direction": [
+        "visual reference is img/EMBLEMA VIRTUDES ATEMPORAIS.png: the palette and overall feel of every screen must be consistent with it (see brand_assets and palette)",
+        "modern and clean: spacing in multiples of 8 px, max-width container, rounded-lg, soft shadows, no heavy gradients",
+        "app shell: header with emblem + SITE_NAME + user menu; collapsible left sidebar on authenticated screens that becomes a Sheet drawer on mobile",
+        "login and signup: two columns on desktop (brand-color panel with emblem and a short tagline, form on white); form only with the emblem on top on small screens",
+        "typography: Inter via @fontsource-variable/inter, self-hosted (no Google Fonts CDN, see L09 and S08)",
+        "components: shadcn/ui only (Button, Card, Badge, Table, Dialog, Sheet, Tabs, Form, Skeleton, Sonner)",
+        "status badges always with text: draft gray, submitted blue, returned amber, approved green",
+        "Skeleton loaders, empty states with a call to action, inline pt-BR form errors, visible focus rings",
+        "mobile first; verify at 360, 768 and 1280 px; tables become cards or scroll horizontally on mobile"
+      ],
+      "constraints": [
+        "visual changes only: keep routes, props, hooks, queries, zod schemas, RouteGuard behavior and RLS-dependent calls unchanged",
+        "no new data fetching, no dangerouslySetInnerHTML (S07), no third-party scripts or fonts (L09)",
+        "new packages only with name and reason (R05); allowed candidates: @fontsource-variable/inter, sonner, lucide-react (if not already included by shadcn)"
+      ],
+      "acceptance": [
+        "searching for the old site name in src/, index.html, public/ and supabase/functions/ returns nothing, except references to the Order DeMolay itself",
+        "no component contains a hardcoded hex color; everything uses tokens",
+        "Lighthouse Accessibility score of 90 or more on /login and /campaigns",
+        "all screens checked at 360, 768 and 1280 px"
+      ]
+    }
+  }
 }

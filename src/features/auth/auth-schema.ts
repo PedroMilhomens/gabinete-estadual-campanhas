@@ -5,6 +5,22 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Informe sua senha.'),
 })
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Informe um e-mail válido.'),
+})
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(10, 'A senha deve ter pelo menos 10 caracteres.'),
+    passwordConfirmation: z.string(),
+  })
+  .refine((values) => values.password === values.passwordConfirmation, {
+    message: 'As senhas não coincidem.',
+    path: ['passwordConfirmation'],
+  })
+
 export const signupSchema = z.object({
   fullName: z
     .string()
@@ -47,5 +63,7 @@ export const signupChaptersSchema = z.array(
 )
 
 export type LoginFormValues = z.infer<typeof loginSchema>
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>
 export type SignupFormValues = z.infer<typeof signupSchema>
 export type UserProfile = z.infer<typeof profileSchema>

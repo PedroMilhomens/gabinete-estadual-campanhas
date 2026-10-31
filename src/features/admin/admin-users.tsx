@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
+import { SITE_NAME } from '../../config/site'
 import { z } from 'zod'
 import { useAuth } from '../auth/use-auth'
+import './admin.css'
 
 const adminUserSchema = z.object({
   id: z.string().uuid(),
@@ -252,11 +255,15 @@ export function AdminUsersPage() {
         <header className="admin-header">
           <Link className="admin-brand-link" to="/">
             <div className="auth-brand">
-              <div className="brand-mark" aria-hidden="true">
-                D
-              </div>
+              <img
+                className="brand-mark"
+                src={emblem}
+                width={42}
+                height={42}
+                alt="Emblema Virtudes Atemporais"
+              />
               <div>
-                <p className="brand-name">DeMolay Rondônia</p>
+                <p className="brand-name">{SITE_NAME}</p>
                 <p className="brand-caption">Administração</p>
               </div>
             </div>

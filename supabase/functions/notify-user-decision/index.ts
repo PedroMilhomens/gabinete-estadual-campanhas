@@ -1,4 +1,5 @@
 import { z } from "npm:zod@4";
+import { SITE_NAME } from "../../../src/config/site.ts";
 import {
   createAdminClient,
   isAuthorizedWebhook,
@@ -76,8 +77,8 @@ export async function handleRequest(request: Request): Promise<Response> {
     ? "Seu cadastro foi aprovado"
     : "Atualização do seu cadastro";
   const text = isApproved
-    ? `Olá, ${record.full_name}. Seu cadastro no portal DeMolay Rondônia foi aprovado.`
-    : `Olá, ${record.full_name}. Seu cadastro no portal DeMolay Rondônia não foi aprovado. Entre em contato com a administração do seu capítulo para mais informações.`;
+    ? `Olá, ${record.full_name}. Seu cadastro no portal ${SITE_NAME} foi aprovado.`
+    : `Olá, ${record.full_name}. Seu cadastro no portal ${SITE_NAME} não foi aprovado. Entre em contato com a administração do seu capítulo para mais informações.`;
 
   try {
     const sent = await sendEmail(

@@ -1,0 +1,533 @@
+.app-shell {
+  --app-shell-header-height: 76px;
+  --app-shell-sidebar-width: 248px;
+  min-height: 100svh;
+  background: var(--neutral-50);
+  color: var(--foreground);
+}
+
+.app-shell-header {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: flex;
+  height: var(--app-shell-header-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--neutral-200);
+  background: var(--card);
+}
+
+.app-shell-brand {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  color: var(--brand-blue);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.app-shell-brand img {
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+.app-shell-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-shell-user-menu {
+  position: relative;
+}
+
+.app-shell-user-menu summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  list-style: none;
+}
+
+.app-shell-user-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-shell-user-menu summary:hover,
+.app-shell-user-menu[open] summary {
+  background: var(--neutral-100);
+}
+
+.app-shell-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--brand-gold);
+  border-radius: 50%;
+  background: var(--brand-blue);
+  color: var(--primary-foreground);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.app-shell-user-copy {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.app-shell-user-copy strong {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-user-copy small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.app-shell-user-chevron {
+  color: var(--muted-foreground);
+}
+
+.app-shell-user-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(260px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--popover);
+  box-shadow: 0 12px 32px rgb(19 64 105 / 14%);
+}
+
+.app-shell-user-popover p {
+  overflow: hidden;
+  padding: 10px 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell-user-popover button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--destructive);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+
+.app-shell-user-popover button:hover {
+  background: var(--neutral-100);
+}
+
+.app-shell-body {
+  display: flex;
+  min-height: calc(100svh - var(--app-shell-header-height));
+}
+
+.app-shell-sidebar {
+  position: sticky;
+  top: var(--app-shell-header-height);
+  display: flex;
+  width: var(--app-shell-sidebar-width);
+  height: calc(100svh - var(--app-shell-header-height));
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 20px 12px;
+  border-right: 1px solid var(--neutral-200);
+  background: var(--card);
+  transition: width 180ms ease;
+}
+
+.app-shell--collapsed {
+  --app-shell-sidebar-width: 76px;
+}
+
+.app-shell-collapse,
+.app-shell-icon-button,
+.app-shell-mobile-trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.app-shell-collapse {
+  justify-content: flex-end;
+  margin-bottom: 12px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.app-shell-collapse:hover,
+.app-shell-icon-button:hover,
+.app-shell-mobile-trigger:hover {
+  border-color: var(--border);
+  background: var(--neutral-50);
+  color: var(--brand-blue);
+}
+
+.app-shell--collapsed .app-shell-collapse {
+  justify-content: center;
+}
+
+.app-shell-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.app-shell-nav-link {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--neutral-700);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-shell-nav-link:hover {
+  background: var(--neutral-50);
+  color: var(--brand-blue);
+}
+
+.app-shell-nav-link--active {
+  border-color: var(--accent-border);
+  background: var(--accent);
+  color: var(--brand-blue);
+}
+
+.app-shell--collapsed .app-shell-nav-link {
+  justify-content: center;
+  padding: 0;
+}
+
+.app-shell--collapsed .app-shell-nav-link span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.app-shell-content {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+.app-shell-content > main {
+  min-height: calc(100svh - var(--app-shell-header-height));
+}
+
+.app-shell-content .campaign-header,
+.app-shell-content .submission-header,
+.app-shell-content .review-header {
+  display: none;
+}
+
+.app-shell-content .admin-header .admin-brand-link {
+  display: none;
+}
+
+.app-shell-content .admin-header {
+  justify-content: flex-end;
+  min-height: 48px;
+}
+.app-shell-error {
+  margin: 16px 24px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--destructive);
+  font-size: 13px;
+}
+
+.app-shell-mobile-trigger,
+.app-shell-mobile-dialog {
+  display: none;
+}
+
+.app-shell :focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .app-shell-header {
+    height: 68px;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .app-shell-mobile-trigger {
+    display: inline-flex;
+    width: 40px;
+    flex: 0 0 auto;
+  }
+
+  .app-shell-header > .app-shell-brand {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .app-shell-header > .app-shell-brand img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-shell-header .app-shell-user-copy {
+    display: none;
+  }
+
+  .app-shell-header .app-shell-user-chevron {
+    display: none;
+  }
+
+  .app-shell-header .app-shell-user-menu summary {
+    padding: 2px;
+  }
+
+  .app-shell-sidebar {
+    display: none;
+  }
+
+  .app-shell-body {
+    min-height: calc(100svh - 68px);
+  }
+
+  .app-shell-content > main {
+    min-height: calc(100svh - 68px);
+  }
+
+  .app-shell-mobile-dialog[open] {
+    position: fixed;
+    inset: 0 auto 0 0;
+    display: flex;
+    width: min(360px, calc(100vw - 40px));
+    max-width: none;
+    height: 100svh;
+    max-height: none;
+    flex-direction: column;
+    gap: 24px;
+    margin: 0;
+    padding: 20px 16px;
+    border: 0;
+    background: var(--card);
+    color: var(--foreground);
+    box-shadow: 16px 0 48px rgb(19 64 105 / 16%);
+  }
+
+  .app-shell-mobile-dialog::backdrop {
+    background: rgb(17 33 49 / 48%);
+  }
+
+  .app-shell-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .app-shell-mobile-header .app-shell-brand {
+    font-size: 13px;
+  }
+
+  .app-shell-mobile-dialog .app-shell-nav-link {
+    min-height: 48px;
+  }
+
+  .app-shell-mobile-dialog .app-shell-user-menu {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .app-shell-mobile-dialog .app-shell-user-menu summary {
+    justify-content: flex-start;
+  }
+
+  .app-shell-mobile-dialog .app-shell-user-copy {
+    display: grid;
+  }
+
+  .app-shell-mobile-dialog .app-shell-user-popover {
+    position: static;
+    width: auto;
+    margin-top: 8px;
+    box-shadow: none;
+  }
+}
+
+.app-dashboard {
+  display: grid;
+  align-content: start;
+  gap: 32px;
+  padding: clamp(24px, 5vw, 56px);
+  background:
+    radial-gradient(ellipse at 86% 5%, var(--accent) 0, transparent 26rem),
+    var(--neutral-50);
+}
+
+.app-dashboard-welcome {
+  width: min(100%, 1120px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px);
+  border: 1px solid rgb(192 166 89 / 30%);
+  border-radius: var(--radius-xl);
+  background: var(--brand-blue);
+  color: var(--primary-foreground);
+  box-shadow: 0 16px 40px rgb(19 64 105 / 12%);
+}
+
+.app-dashboard-eyebrow {
+  margin: 0;
+  color: var(--brand-gold);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.app-dashboard-welcome h1 {
+  margin: 12px 0;
+  color: var(--primary-foreground);
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 680;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+
+.app-dashboard-welcome > p:last-child {
+  max-width: 640px;
+  margin: 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.app-dashboard-shortcuts {
+  display: grid;
+  width: min(100%, 1120px);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.app-dashboard-card {
+  display: flex;
+  min-width: 0;
+  min-height: 104px;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--brand-blue);
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgb(19 64 105 / 5%);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.app-dashboard-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-gold);
+  box-shadow: 0 12px 28px rgb(19 64 105 / 10%);
+}
+
+.app-dashboard-card-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(192 166 89 / 45%);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-50);
+  color: var(--brand-green);
+}
+
+.app-dashboard-card > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+}
+
+.app-dashboard-card strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.app-dashboard-card small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+  .app-dashboard {
+    gap: 24px;
+    padding: 24px 16px;
+  }
+
+  .app-dashboard-welcome {
+    padding: 28px 24px;
+  }
+
+  .app-dashboard-shortcuts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .app-dashboard-card {
+    min-height: 88px;
+    padding: 16px;
+  }
+}

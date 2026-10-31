@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
+import { SITE_NAME } from '../../config/site'
 import './legal.css'
 
 function LegalLayout({
@@ -13,19 +15,45 @@ function LegalLayout({
 }) {
   return (
     <main className="legal-page">
+      <header className="legal-header">
+        <Link className="legal-brand" to="/login">
+          <img
+            src={emblem}
+            width={44}
+            height={44}
+            alt="Emblema Virtudes Atemporais"
+          />
+          <span>{SITE_NAME}</span>
+        </Link>
+        <nav className="legal-header-nav" aria-label="Navegação institucional">
+          <Link to="/privacy">Privacidade</Link>
+          <Link to="/terms">Termos de uso</Link>
+          <Link className="legal-login-link" to="/login">
+            Acessar conta
+          </Link>
+        </nav>
+      </header>
       <article className="legal-card">
         <Link className="legal-home-link" to="/login">
-          ← Portal DeMolay-RO
+          Voltar ao acesso
         </Link>
-        <p className="auth-eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="legal-updated">Última atualização: 30 de outubro de 2026</p>
-        {children}
+        <div className="legal-heading">
+          <p className="auth-eyebrow">{eyebrow}</p>
+          <h1>{title}</h1>
+          <p className="legal-updated">
+            Última atualização: 30 de outubro de 2026
+          </p>
+        </div>
+        <div className="legal-content">{children}</div>
         <nav className="legal-nav" aria-label="Documentos legais">
-          <Link to="/privacy">Privacidade</Link>
+          <Link to="/privacy">Política de privacidade</Link>
           <Link to="/terms">Termos de uso</Link>
         </nav>
       </article>
+      <footer className="legal-footer">
+        <span>{SITE_NAME}</span>
+        <span>Portal de campanhas estaduais · Rondônia</span>
+      </footer>
     </main>
   )
 }
@@ -111,7 +139,7 @@ export function TermsPage() {
         <h2>Finalidade e acesso</h2>
         <p>
           O portal apoia o envio, acompanhamento e avaliação das atividades das
-          campanhas estaduais DeMolay-RO. O cadastro exige e-mail do capítulo,
+          campanhas estaduais {SITE_NAME}. O cadastro exige e-mail do capítulo,
           confirmação de endereço e aprovação administrativa. Mantenha seus
           dados atualizados e não compartilhe sua senha ou acesso.
         </p>

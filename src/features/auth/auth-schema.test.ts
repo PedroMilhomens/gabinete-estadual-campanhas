@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  forgotPasswordSchema,
   loginSchema,
   profileSchema,
+  resetPasswordSchema,
   signupSchema,
 } from './auth-schema'
 
@@ -56,6 +58,38 @@ describe('signupSchema', () => {
     expect(
       signupSchema.safeParse({ ...validSignup, chapterNumber: 12.5 }).success,
     ).toBe(false)
+  })
+})
+
+describe('password recovery schemas', () => {
+  it('accepts a valid email address for recovery', () => {
+    expect(
+      forgotPasswordSchema.safeParse({ email: 'member@example.test' }).success,
+    ).toBe(true)
+    expect(forgotPasswordSchema.safeParse({ email: 'invalid' }).success).toBe(
+      false,
+    )
+  })
+
+  it('requires a ten-character password and matching confirmation', () => {
+    expect(
+      resetPasswordSchema.safeParse({
+        password: 'short',
+        passwordConfirmation: 'short',
+      }).success,
+    ).toBe(false)
+    expect(
+      resetPasswordSchema.safeParse({
+        password: 'a-valid-password',
+        passwordConfirmation: 'a-different-password',
+      }).success,
+    ).toBe(false)
+    expect(
+      resetPasswordSchema.safeParse({
+        password: 'a-valid-password',
+        passwordConfirmation: 'a-valid-password',
+      }).success,
+    ).toBe(true)
   })
 })
 

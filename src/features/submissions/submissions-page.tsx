@@ -5,6 +5,8 @@ import type { FileRejection } from 'react-dropzone'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../auth/use-auth'
+import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
+import { SITE_NAME } from '../../config/site'
 import {
   ALLOWED_ATTACHMENT_TYPES,
   MAX_ATTACHMENT_SIZE,
@@ -69,11 +71,15 @@ function PageHeader() {
   return (
     <header className="submission-header">
       <Link className="campaign-brand" to="/campaigns">
-        <span className="campaign-brand-mark" aria-hidden="true">
-          D
-        </span>
+        <img
+          className="campaign-brand-mark"
+          src={emblem}
+          width={40}
+          height={40}
+          alt="Emblema Virtudes Atemporais"
+        />
         <span>
-          <strong>DeMolay Rondônia</strong>
+          <strong>{SITE_NAME}</strong>
           <small>Campanhas estaduais</small>
         </span>
       </Link>

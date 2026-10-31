@@ -28,15 +28,10 @@
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: 42px;
   height: 42px;
-  place-items: center;
-  border-radius: 14px;
-  background: #1c3158;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 750;
+  object-fit: contain;
 }
 
 .brand-name,
@@ -59,7 +54,7 @@
 
 .brand-caption {
   margin-top: 2px;
-  color: #73809a;
+  color: var(--neutral-600);
   font-size: 12px;
   letter-spacing: 0;
 }
@@ -89,7 +84,7 @@
 }
 
 .auth-description {
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 14px;
   letter-spacing: 0;
   line-height: 1.6;
@@ -130,7 +125,7 @@
 }
 
 .form-field input::placeholder {
-  color: #a0a9b8;
+  color: var(--neutral-600);
 }
 
 .form-field input:focus {
@@ -193,7 +188,7 @@
 }
 
 .form-note {
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -274,7 +269,7 @@
 
 .auth-switch {
   margin-top: 24px;
-  color: #73809a;
+  color: var(--neutral-600);
   font-size: 13px;
   letter-spacing: 0;
   text-align: center;
@@ -297,7 +292,7 @@
   margin-top: 30px;
   padding-top: 18px;
   border-top: 1px solid #edf0f5;
-  color: #9aa4b4;
+  color: var(--neutral-600);
   font-size: 11px;
   letter-spacing: 0;
 }
@@ -333,7 +328,7 @@
 
 .status-icon--muted {
   background: #eceef2;
-  color: #68758d;
+  color: var(--neutral-600);
 }
 
 .auth-loading {

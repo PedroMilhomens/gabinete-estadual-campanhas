@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import {
   BrowserRouter,
@@ -8,7 +8,17 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+import {
+  ArrowRight,
+  BarChart3,
+  ClipboardList,
+  FileUp,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { AuthProvider } from "./features/auth/auth-provider";
+import "./features/auth/auth.css";
+import { AuthenticatedShell } from "./layout/app-shell";
 import { useAuth } from "./features/auth/use-auth";
 import type { UserProfile } from "./features/auth/auth-schema";
 import { supabase, supabaseConfigurationError } from "./lib/supabase";
@@ -26,6 +36,16 @@ const LoginPage = lazy(() =>
 const SignupPage = lazy(() =>
   import("./features/auth/auth-pages").then((module) => ({
     default: module.SignupPage,
+  })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("./features/auth/auth-pages").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("./features/auth/auth-pages").then((module) => ({
+    default: module.ResetPasswordPage,
   })),
 );
 const AdminUsersPage = lazy(() =>
@@ -131,8 +151,7 @@ function PublicRoute() {
 }
 
 function ApprovedRoute() {
-  const { session, profile, loading, error, signOut } = useAuth();
-  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const { session, profile, loading, error } = useAuth();
 
   if (loading) return <RouteLoading />;
   if (error) return <AuthStatusError message={error} />;
@@ -141,84 +160,72 @@ function ApprovedRoute() {
     return <Navigate to="/awaiting-approval" replace />;
   }
 
-  const handleSignOut = async () => {
-    setSignOutError(null);
-    try {
-      await signOut();
-    } catch {
-      setSignOutError("Não foi possível encerrar sua sessão. Tente novamente.");
-    }
-  };
-
   return (
-    <main className="auth-page">
-      <section className="auth-card" aria-labelledby="approved-title">
-        <header className="auth-brand">
-          <div className="brand-mark" aria-hidden="true">
-            D
-          </div>
-          <div>
-            <p className="brand-name">DeMolay Rondônia</p>
-            <p className="brand-caption">Campanhas estaduais</p>
-          </div>
-        </header>
-        <div className="auth-heading">
-          <p className="auth-eyebrow">Acesso aprovado</p>
-          <h1 id="approved-title">Sua conta está pronta</h1>
-          <p className="auth-description">
-            Olá, {profile.full_name}. Acesse as campanhas e acompanhe os
-            resultados.
-          </p>
-        </div>
-        <button
-          className="button button--secondary"
-          type="button"
-          onClick={() => void handleSignOut()}
-        >
-          Sair da conta
-        </button>
-        {profile.role === "admin" && (
-          <Link
-            className="button button--primary button--link"
-            to="/admin/users"
-          >
-            Gerenciar usuários
-          </Link>
-        )}
-        <Link className="button button--primary button--link" to="/campaigns">
-          Ver campanhas
-        </Link>
-        <Link className="button button--secondary button--link" to="/ranking">
-          Ver ranking
+    <main className="app-dashboard">
+      <section className="app-dashboard-welcome" aria-labelledby="approved-title">
+        <p className="app-dashboard-eyebrow">Acesso aprovado</p>
+        <h1 id="approved-title">Boas-vindas, {profile.full_name}</h1>
+        <p>
+          Seu espaço está pronto. Acesse as campanhas e acompanhe as atividades
+          do seu capítulo.
+        </p>
+      </section>
+      <section className="app-dashboard-shortcuts" aria-label="Acesso rápido">
+        <Link className="app-dashboard-card" to="/campaigns">
+          <span className="app-dashboard-card-icon" aria-hidden="true">
+            <ClipboardList aria-hidden="true" size={22} />
+          </span>
+          <span>
+            <strong>Campanhas</strong>
+            <small>Consulte atividades e prazos</small>
+          </span>
+          <ArrowRight aria-hidden="true" size={18} />
         </Link>
         {profile.role === "member" && (
-          <Link
-            className="button button--secondary button--link"
-            to="/my-submissions"
-          >
-            Meus envios
+          <Link className="app-dashboard-card" to="/my-submissions">
+            <span className="app-dashboard-card-icon" aria-hidden="true">
+              <FileUp aria-hidden="true" size={22} />
+            </span>
+            <span>
+              <strong>Meus envios</strong>
+              <small>Acompanhe suas atividades</small>
+            </span>
+            <ArrowRight aria-hidden="true" size={18} />
           </Link>
         )}
-        {(profile.role === "reviewer" || profile.role === "admin") && (
-          <>
-            <Link
-              className="button button--secondary button--link"
-              to="/review"
-            >
-              Avaliar envios
-            </Link>
-            <Link
-              className="button button--secondary button--link"
-              to="/export"
-            >
-              Exportar CSV
-            </Link>
-          </>
+        {profile.role !== "member" && (
+          <Link className="app-dashboard-card" to="/review">
+            <span className="app-dashboard-card-icon" aria-hidden="true">
+              <ShieldCheck aria-hidden="true" size={22} />
+            </span>
+            <span>
+              <strong>Avaliações</strong>
+              <small>Acesse os envios para análise</small>
+            </span>
+            <ArrowRight aria-hidden="true" size={18} />
+          </Link>
         )}
-        {signOutError && (
-          <p className="form-alert" role="alert">
-            {signOutError}
-          </p>
+        <Link className="app-dashboard-card" to="/ranking">
+          <span className="app-dashboard-card-icon" aria-hidden="true">
+            <BarChart3 aria-hidden="true" size={22} />
+          </span>
+          <span>
+            <strong>Ranking</strong>
+            <small>Veja os resultados das campanhas</small>
+          </span>
+          <ArrowRight aria-hidden="true" size={18} />
+        </Link>
+        {profile.role === "admin" && (
+          <Link className="app-dashboard-card" to="/admin/users">
+            <span className="app-dashboard-card-icon" aria-hidden="true">
+              <Users aria-hidden="true" size={22} />
+            </span>
+            <span>
+              <strong>Gestão de usuários</strong>
+              <small>Administre os acessos ao portal</small>
+            </span>
+            <ArrowRight aria-hidden="true" size={18} />
+          </Link>
         )}
       </section>
     </main>
@@ -281,57 +288,64 @@ function App() {
                 <Route path="/signup" element={<SignupPage />} />
               </Route>
               <Route
-                path="/awaiting-approval"
-                element={<AwaitingApprovalPage />}
+                path="/forgot-password"
+                element={<ForgotPasswordPage />}
               />
-              <Route path="/admin/users" element={<AdminUsersPage />} />
-              <Route path="/campaigns" element={<CampaignsPage />} />
-              <Route
-                path="/campaigns/:campaignId"
-                element={<CampaignsPage />}
-              />
-              <Route
-                path="/activities/:activityId/submit"
-                element={<SubmissionFormPage />}
-              />
-              <Route path="/my-submissions" element={<MySubmissionsPage />} />
-              <Route
-                path="/my-submissions/:submissionId"
-                element={<SubmissionDetailPage />}
-              />
-              <Route
-                path="/review"
-                element={
-                  <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                    <ReviewerSubmissionsPage />
-                  </RoleRoute>
-                }
-              />
-              <Route
-                path="/review/:submissionId"
-                element={
-                  <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                    <ReviewSubmissionPage />
-                  </RoleRoute>
-                }
-              />
-              <Route
-                path="/ranking"
-                element={
-                  <RoleRoute allowedRoles={["member", "reviewer", "admin"]}>
-                    <RankingPage />
-                  </RoleRoute>
-                }
-              />
-              <Route
-                path="/export"
-                element={
-                  <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                    <SubmissionExportPage />
-                  </RoleRoute>
-                }
-              />
-              <Route path="/" element={<ApprovedRoute />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route element={<AuthenticatedShell />}>
+                <Route
+                  path="/awaiting-approval"
+                  element={<AwaitingApprovalPage />}
+                />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/campaigns" element={<CampaignsPage />} />
+                <Route
+                  path="/campaigns/:campaignId"
+                  element={<CampaignsPage />}
+                />
+                <Route
+                  path="/activities/:activityId/submit"
+                  element={<SubmissionFormPage />}
+                />
+                <Route path="/my-submissions" element={<MySubmissionsPage />} />
+                <Route
+                  path="/my-submissions/:submissionId"
+                  element={<SubmissionDetailPage />}
+                />
+                <Route
+                  path="/review"
+                  element={
+                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                      <ReviewerSubmissionsPage />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="/review/:submissionId"
+                  element={
+                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                      <ReviewSubmissionPage />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="/ranking"
+                  element={
+                    <RoleRoute allowedRoles={["member", "reviewer", "admin"]}>
+                      <RankingPage />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path="/export"
+                  element={
+                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                      <SubmissionExportPage />
+                    </RoleRoute>
+                  }
+                />
+                <Route path="/" element={<ApprovedRoute />} />
+              </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

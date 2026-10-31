@@ -3,6 +3,10 @@ import type { ReactNode } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { AuthContext } from './auth-context'
 import { profileSchema } from './auth-schema'
+import {
+  clearPasswordRecovery,
+  markPasswordRecovery,
+} from './password-recovery-state'
 
 type AuthProviderProps = {
   client: SupabaseClient
@@ -103,7 +107,13 @@ export function AuthProvider({ client, children }: AuthProviderProps) {
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((_event, nextSession) => {
+    } = client.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY' && nextSession) {
+        markPasswordRecovery()
+      } else if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+        clearPasswordRecovery()
+      }
+
       authEventReceived = true
       queueMicrotask(() => {
         void loadSessionProfile(nextSession)

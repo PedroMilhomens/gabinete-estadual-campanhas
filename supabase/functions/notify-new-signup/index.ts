@@ -1,4 +1,5 @@
 import { z } from "npm:zod@4";
+import { SITE_NAME } from "../../../src/config/site.ts";
 import {
   createAdminClient,
   isAuthorizedWebhook,
@@ -87,7 +88,7 @@ export async function handleRequest(request: Request): Promise<Response> {
         sendEmail(
           [email],
           "Novo cadastro aguardando aprovação",
-          `Um novo cadastro de ${parsed.data.record.full_name} está aguardando aprovação no portal DeMolay Rondônia.`,
+          `Um novo cadastro de ${parsed.data.record.full_name} está aguardando aprovação no portal ${SITE_NAME}.`,
           `new-signup-${parsed.data.record.id}-${id}`,
         )
       ),

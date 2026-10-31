@@ -21,15 +21,10 @@
 }
 
 .submission-header .campaign-brand-mark {
-  display: grid;
+  display: block;
   width: 40px;
   height: 40px;
-  place-items: center;
-  border-radius: 13px;
-  background: #1c3158;
-  color: #fff;
-  font-size: 19px;
-  font-weight: 750;
+  object-fit: contain;
 }
 
 .submission-header .campaign-brand strong,
@@ -44,7 +39,7 @@
 
 .submission-header .campaign-brand small {
   margin-top: 2px;
-  color: #73809a;
+  color: var(--neutral-600);
   font-size: 11px;
 }
 
@@ -78,7 +73,7 @@
   flex-wrap: wrap;
   gap: 9px;
   padding: 23px 0;
-  color: #98a2b1;
+  color: #657187;
   font-size: 12px;
   letter-spacing: 0;
 }
@@ -117,7 +112,7 @@
 .my-submissions-heading > div > p:last-child,
 .submission-detail-heading > div > p:last-child {
   margin: 0;
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 13px;
   letter-spacing: 0;
   line-height: 1.6;
@@ -210,7 +205,7 @@
 }
 
 .submission-field textarea::placeholder {
-  color: #a0a9b8;
+  color: var(--neutral-600);
 }
 
 .submission-field textarea:focus {
@@ -220,7 +215,7 @@
 
 .submission-character-count {
   justify-self: end;
-  color: #929cad;
+  color: var(--neutral-600);
   font-size: 10px;
   font-weight: 450;
 }
@@ -278,7 +273,7 @@
 
 .attachment-dropzone p {
   margin: 4px 0 0;
-  color: #8490a3;
+  color: var(--neutral-600);
   font-size: 10px;
   letter-spacing: 0;
 }
@@ -288,7 +283,7 @@
   padding: 11px 12px;
   border-radius: 9px;
   background: #f5f7fb;
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 11px;
   letter-spacing: 0;
   line-height: 1.55;
@@ -341,7 +336,7 @@
 }
 
 .submission-file-size {
-  color: #929cad;
+  color: var(--neutral-600);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -446,7 +441,7 @@
   padding: 5px 9px;
   border-radius: 999px;
   background: #f0f2f6;
-  color: #6d788c;
+  color: var(--neutral-600);
   font-size: 10px;
   font-weight: 680;
   white-space: nowrap;
@@ -484,7 +479,7 @@
 
 .submission-description {
   margin: 0 0 18px;
-  color: #526078;
+  color: var(--neutral-600);
   font-size: 13px;
   letter-spacing: 0;
   line-height: 1.7;
@@ -493,7 +488,7 @@
 
 .submission-muted {
   margin: 0;
-  color: #8a95a7;
+  color: var(--neutral-600);
   font-size: 11px;
   letter-spacing: 0;
 }
@@ -557,13 +552,13 @@
 }
 
 .submission-comment time {
-  color: #929cad;
+  color: var(--neutral-600);
   font-size: 10px;
 }
 
 .submission-comment p {
   margin: 0;
-  color: #526078;
+  color: var(--neutral-600);
   font-size: 12px;
   letter-spacing: 0;
   line-height: 1.6;
@@ -612,7 +607,7 @@
 
 .my-submission-info > p {
   margin: 0;
-  color: #929cad;
+  color: var(--neutral-600);
   font-size: 10px;
   letter-spacing: 0;
 }
@@ -625,7 +620,7 @@
 }
 
 .submission-arrow {
-  color: #657796;
+  color: #526687;
   font-size: 16px;
 }
 
@@ -663,7 +658,7 @@
 .submission-empty p {
   max-width: 380px;
   margin: 0 0 4px;
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 12px;
   letter-spacing: 0;
   line-height: 1.55;
@@ -735,5 +730,209 @@
   .submission-nav {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+.submission-page {
+  background:
+    radial-gradient(ellipse at 88% 5%, rgb(228 239 230 / 70%), transparent 28rem),
+    var(--neutral-50);
+}
+
+.submission-content {
+  width: min(100%, 1040px);
+}
+
+.submission-title {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  align-items: start;
+  padding: 28px clamp(22px, 4vw, 40px);
+  margin-bottom: 22px;
+  border: 1px solid rgb(192 166 89 / 35%);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 95% 0%, rgb(255 255 255 / 12%), transparent 18rem),
+    var(--brand-blue);
+  box-shadow: 0 16px 36px rgb(19 64 105 / 11%);
+}
+
+.submission-title .submission-eyebrow {
+  color: var(--brand-gold);
+}
+
+.submission-title h1,
+.submission-title > p:not(.submission-eyebrow) {
+  color: var(--primary-foreground);
+}
+
+.submission-title h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 40px);
+}
+
+.submission-title > p:not(.submission-eyebrow) {
+  max-width: 740px;
+  opacity: 0.84;
+}
+
+.submission-title .submission-activity-meta {
+  margin-top: 4px;
+}
+
+.submission-title .submission-activity-meta span {
+  border: 1px solid rgb(255 255 255 / 20%);
+  background: rgb(255 255 255 / 10%);
+  color: var(--primary-foreground);
+}
+
+.submission-breadcrumb {
+  color: var(--muted-foreground);
+}
+
+.submission-breadcrumb a {
+  color: var(--brand-blue);
+  font-weight: 650;
+}
+
+.my-submissions-heading {
+  margin: 20px 0 24px;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid rgb(192 166 89 / 35%);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 95% 0%, rgb(255 255 255 / 12%), transparent 18rem),
+    var(--brand-blue);
+  box-shadow: 0 16px 36px rgb(19 64 105 / 11%);
+}
+
+.my-submissions-heading .submission-eyebrow {
+  color: var(--brand-gold);
+}
+
+.my-submissions-heading h1,
+.my-submissions-heading > div > p:last-child {
+  color: var(--primary-foreground);
+}
+
+.my-submissions-heading h1 {
+  margin: 8px 0;
+  font-size: clamp(30px, 4vw, 40px);
+}
+
+.my-submissions-heading > div > p:last-child {
+  opacity: 0.84;
+}
+
+.my-submissions-heading .submission-button--primary {
+  border: 1px solid rgb(255 255 255 / 60%);
+  background: var(--primary-foreground);
+  color: var(--brand-blue);
+}
+
+.my-submissions-heading .submission-button--primary:hover {
+  background: var(--accent);
+}
+
+.submission-detail-heading {
+  align-items: flex-start;
+  margin: 10px 0 20px;
+  padding: clamp(22px, 4vw, 34px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: 0 8px 26px rgb(19 64 105 / 5%);
+}
+
+.submission-detail-heading h1 {
+  color: var(--brand-blue);
+  font-size: clamp(28px, 4vw, 38px);
+}
+
+.submission-detail-heading > div > p:last-child {
+  color: var(--muted-foreground);
+}
+
+.submission-panel,
+.submission-empty {
+  border-color: var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 26px rgb(19 64 105 / 5%);
+}
+
+.submission-section-title h2,
+.my-submission-info h2 {
+  color: var(--brand-blue);
+}
+
+.submission-field,
+.submission-existing-files h3 {
+  color: var(--neutral-700);
+}
+
+.submission-field textarea,
+.submission-field input {
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+}
+
+.submission-field textarea:focus,
+.submission-field input:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgb(19 64 105 / 14%);
+}
+
+.submission-button--primary {
+  background: var(--brand-blue);
+}
+
+.submission-button--primary:hover:not(:disabled) {
+  background: var(--brand-green);
+}
+
+.submission-button--secondary {
+  border-color: var(--border);
+  color: var(--brand-blue);
+}
+
+.my-submission-card {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgb(19 64 105 / 4%);
+}
+
+.my-submission-card:hover {
+  border-color: rgb(192 166 89 / 70%);
+  box-shadow: 0 12px 28px rgb(19 64 105 / 9%);
+}
+
+.submission-empty-icon {
+  border: 1px solid rgb(192 166 89 / 45%);
+  background: var(--accent);
+  color: var(--brand-green);
+}
+
+.submission-empty h2 {
+  color: var(--brand-blue);
+}
+
+.submission-page :focus-visible {
+  outline-color: var(--ring);
+}
+
+@media (max-width: 640px) {
+  .submission-title {
+    gap: 9px;
+    padding: 23px 20px;
+  }
+
+  .my-submissions-heading,
+  .submission-detail-heading {
+    padding: 22px 18px;
+  }
+
+  .my-submissions-heading .submission-button {
+    width: 100%;
   }
 }

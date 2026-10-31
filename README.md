@@ -1,6 +1,9 @@
-# React + TypeScript + Vite
+# Gabinete Estadual de Rondônia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Portal de campanhas estaduais, construído com React, TypeScript e Vite. O nome
+visível da aplicação é definido em `src/config/site.ts`.
+
+The application uses React and Vite with ESLint for development checks.
 
 Currently, two official plugins are available:
 
@@ -70,7 +73,17 @@ export default defineConfig([
    generic.
 5. Configure Supabase Auth SMTP before production use; the built-in mailer is
    rate-limited. Set the password minimum to 10 characters.
-6. Deploy the notification Edge Functions:
+6. Configure password recovery in **Authentication → URL Configuration**:
+   allow the production site's `https://<your-domain>/reset-password` URL and
+   the local `http://localhost:5173/reset-password` URL. Add each actual
+   development or preview origin with the same `/reset-password` path. In
+   **Authentication → Email Templates**, translate the **Reset Password** and
+   **Confirm signup** templates to pt-BR and keep the reset link using
+   `{{ .ConfirmationURL }}` so Supabase can establish the recovery session.
+   Configure a custom SMTP provider in **Authentication → SMTP Settings** and
+   verify its sender domain before enabling production password-recovery
+   emails.
+7. Deploy the notification Edge Functions:
 
    ```sh
    supabase functions deploy notify-new-signup
@@ -85,7 +98,7 @@ export default defineConfig([
    Functions; never add the service-role key to client environment variables or
    commit it. Set the three secrets with `supabase secrets set` or in the
    Supabase Dashboard under Project Settings > Edge Functions > Secrets.
-7. In the Supabase Dashboard, create two Database Webhooks for `public.profiles`:
+8. In the Supabase Dashboard, create two Database Webhooks for `public.profiles`:
    one for `INSERT` calling
    `https://<project-ref>.supabase.co/functions/v1/notify-new-signup`, and one
    for `UPDATE` calling
@@ -168,6 +181,26 @@ deployed by a frontend push.
 Static response headers are configured in `public/_headers` for Netlify and
 Cloudflare Pages. Backup, restore, audit-log operation, and incident-response
 procedures are documented in [docs/OPERATIONS.md](./docs/OPERATIONS.md).
+
+## Final responsive and accessibility QA
+
+B17 production-preview smoke checks directly loaded the six public routes
+(`/login`, `/signup`, `/forgot-password`, `/reset-password`, `/privacy`, and
+`/terms`) at 360, 768, and 1280 CSS pixels. All 18 checks rendered without
+horizontal overflow, failed local assets, or application JavaScript
+exceptions. A protected `/campaigns` visit without a session redirected to
+`/login`.
+
+Keyboard checks confirmed visible focus indicators on form fields and legal
+navigation links. Secondary text, captions, and form placeholders use the
+neutral tokens documented in [docs/design-tokens.md](./docs/design-tokens.md);
+the brand gold remains reserved for decorative uses or large text on dark blue.
+
+The preview environment had no approved member, reviewer, or admin test
+sessions, so their authenticated screens and role-specific keyboard flows
+could not be browser-smoke-tested. Cloudflare Turnstile also emitted
+third-party challenge/CSP warnings in the integrated browser, so CAPTCHA
+completion and authenticated flows were not validated there.
 
 You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
 

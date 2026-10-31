@@ -1,25 +1,34 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
+  --text: #4b5563;
+  --text-h: #134069;
   --bg: #fff;
-  --border: oklch(0.922 0 0);
-  --code-bg: #f4f3ec;
-  --accent: oklch(0.97 0 0);
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --border: #e5e7eb;
+  --code-bg: #f3f4f6;
+  --brand-blue: #134069;
+  --brand-green: #007d00;
+  --brand-gold: #c0a659;
+  --gold: var(--brand-gold);
+  --neutral-50: #f9fafb;
+  --neutral-100: #f3f4f6;
+  --neutral-200: #e5e7eb;
+  --neutral-500: #626b78;
+  --neutral-600: #59667d;
+  --neutral-700: #374151;
+  --accent-bg: rgb(0 125 0 / 10%);
+  --accent-border: rgb(0 125 0 / 50%);
+  --social-bg: rgb(243 244 246 / 50%);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Inter Variable', Inter, sans-serif;
+  --heading: 'Inter Variable', Inter, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -36,37 +45,39 @@
     font-size: 16px;
   }
 
-  --background: oklch(1 0 0);
+  --background: #fff;
 
-  --foreground: oklch(0.145 0 0);
+  --foreground: #19212c;
 
-  --card: oklch(1 0 0);
+  --card: #fff;
 
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #19212c;
 
-  --popover: oklch(1 0 0);
+  --popover: #fff;
 
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: #19212c;
 
-  --primary: oklch(0.205 0 0);
+  --primary: var(--brand-blue);
 
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: #fff;
 
-  --secondary: oklch(0.97 0 0);
+  --secondary: var(--brand-green);
 
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: #fff;
 
-  --muted: oklch(0.97 0 0);
+  --muted: var(--neutral-100);
 
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: var(--neutral-500);
 
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: #e4efe6;
 
-  --destructive: oklch(0.577 0.245 27.325);
+  --accent-foreground: var(--brand-blue);
 
-  --input: oklch(0.922 0 0);
+  --destructive: #b42332;
 
-  --ring: oklch(0.708 0 0);
+  --input: var(--neutral-200);
+
+  --ring: var(--brand-blue);
 
   --chart-1: oklch(0.87 0 0);
 
@@ -100,14 +111,14 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --text-h: var(--brand-blue);
+    --bg: #fff;
+    --border: var(--neutral-200);
+    --code-bg: var(--neutral-100);
+    --accent: #e4efe6;
+    --accent-bg: rgb(0 125 0 / 10%);
+    --accent-border: rgb(0 125 0 / 50%);
+    --social-bg: rgb(243 244 246 / 50%);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -177,7 +188,7 @@ code {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Inter Variable', Inter, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -203,6 +214,7 @@ code {
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-gold: var(--gold);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);

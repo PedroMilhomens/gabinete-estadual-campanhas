@@ -3,6 +3,12 @@ import type { FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../auth/use-auth'
+import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
+import { SITE_NAME } from '../../config/site'
+import {
+  getLocalDateTimeParts,
+  localDateTimeToIso,
+} from './activity-datetime'
 import {
   activitySchema,
   campaignRecordSchema,
@@ -17,6 +23,13 @@ import './campaigns.css'
 
 const campaignSelection =
   'id, name, starts_at, ends_at, active, activities(id, campaign_id, name, description, points, due_at)'
+
+const activityHours = Array.from({ length: 24 }, (_, hour) =>
+  String(hour).padStart(2, '0'),
+)
+const activityMinutes = Array.from({ length: 60 }, (_, minute) =>
+  String(minute).padStart(2, '0'),
+)
 
 function formatDate(value: string | null) {
   if (!value) return null
@@ -266,18 +279,40 @@ function ActivityForm({
   onSave: (values: ActivityFormValues, id: string | null) => Promise<void>
   onCancel: () => void
 }) {
+  const dueAt = getLocalDateTimeParts(activity?.due_at ?? null)
   const [values, setValues] = useState<ActivityFormValues>({
     campaignId,
     name: activity?.name ?? '',
     description: activity?.description ?? '',
     points: activity?.points ?? 0,
-    dueAt: activity?.due_at ?? '',
+    dueAt: '',
   })
+  const [dueDate, setDueDate] = useState(dueAt.date)
+  const [dueHour, setDueHour] = useState(dueAt.time.slice(0, 2))
+  const [dueMinute, setDueMinute] = useState(dueAt.time.slice(3, 5))
   const [error, setError] = useState<string | null>(null)
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = activitySchema.safeParse(values)
+    const hasDeadlineInput = Boolean(dueDate || dueHour || dueMinute)
+    const hasCompleteDeadline = Boolean(dueDate && dueHour && dueMinute)
+    if (hasDeadlineInput && !hasCompleteDeadline) {
+      setError('Informe a data e o horário do prazo.')
+      return
+    }
+
+    let dueAt = ''
+    if (dueDate && dueHour && dueMinute) {
+      try {
+        dueAt = localDateTimeToIso(dueDate, `${dueHour}:${dueMinute}`)
+      } catch (validationError) {
+        if (!(validationError instanceof RangeError)) throw validationError
+        setError(validationError.message)
+        return
+      }
+    }
+
+    const result = activitySchema.safeParse({ ...values, dueAt })
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? 'Revise os dados informados.')
       return
@@ -315,7 +350,7 @@ function ActivityForm({
           }
         />
       </label>
-      <div className="campaign-form-row">
+      <div className="campaign-form-row campaign-form-row--activity">
         <label className="campaign-field">
           <span>Pontos</span>
           <input
@@ -333,19 +368,48 @@ function ActivityForm({
           />
         </label>
         <label className="campaign-field">
-          <span>Prazo</span>
+          <span>Data do prazo</span>
           <input
-            type="datetime-local"
-            value={values.dueAt ? values.dueAt.slice(0, 16) : ''}
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                dueAt: event.target.value
-                  ? new Date(event.target.value).toISOString()
-                  : '',
-              }))
-            }
+            type="date"
+            lang="pt-BR"
+            value={dueDate}
+            onChange={(event) => setDueDate(event.target.value)}
           />
+        </label>
+        <label className="campaign-field">
+          <span>Horário do prazo (24 horas)</span>
+          <div className="campaign-time-fields">
+            <select
+              aria-label="Hora do prazo, formato 24 horas"
+              value={dueHour}
+              onChange={(event) => {
+                const hour = event.target.value
+                setDueHour(hour)
+                if (!hour) setDueMinute('')
+                else if (!dueMinute) setDueMinute('00')
+              }}
+            >
+              <option value="">Hora</option>
+              {activityHours.map((hour) => (
+                <option key={hour} value={hour}>
+                  {hour}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Minuto do prazo"
+              value={dueMinute}
+              disabled={!dueHour}
+              onChange={(event) => setDueMinute(event.target.value)}
+            >
+              <option value="">Minuto</option>
+              {activityMinutes.map((minute) => (
+                <option key={minute} value={minute}>
+                  {minute}
+                </option>
+              ))}
+            </select>
+          </div>
         </label>
       </div>
       {error && (
@@ -639,7 +703,9 @@ export function CampaignsPage() {
 
   if (authLoading) {
     return (
-      <main className="campaign-page">
+      <main
+        className={`campaign-page${member ? ' campaign-page--member' : ' campaign-page--admin'}`}
+      >
         <p role="status">Verificando sua conta…</p>
       </main>
     )
@@ -674,11 +740,15 @@ export function CampaignsPage() {
       <section className="campaign-content">
         <header className="campaign-header">
           <Link className="campaign-brand" to="/">
-            <span className="campaign-brand-mark" aria-hidden="true">
-              D
-            </span>
+            <img
+              className="campaign-brand-mark"
+              src={emblem}
+              width={40}
+              height={40}
+              alt="Emblema Virtudes Atemporais"
+            />
             <span>
-              <strong>DeMolay Rondônia</strong>
+              <strong>{SITE_NAME}</strong>
               <small>Campanhas estaduais</small>
             </span>
           </Link>

@@ -70,7 +70,7 @@
 .admin-description {
   max-width: 640px;
   margin: 0;
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 14px;
   letter-spacing: 0;
   line-height: 1.6;
@@ -94,7 +94,7 @@
 
 .admin-count span {
   margin-top: 4px;
-  color: #73809a;
+  color: var(--neutral-600);
   font-size: 11px;
   letter-spacing: 0;
 }
@@ -122,7 +122,7 @@
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: #77839a;
+  color: var(--neutral-600);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -146,7 +146,7 @@
 
 .admin-result-count {
   margin: 0;
-  color: #8893a5;
+  color: var(--neutral-600);
   font-size: 11px;
   letter-spacing: 0;
 }
@@ -168,7 +168,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid #edf0f5;
   background: #fbfcfe;
-  color: #8490a3;
+  color: var(--neutral-600);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -179,7 +179,7 @@
 .admin-table td {
   padding: 15px 16px;
   border-bottom: 1px solid #f0f2f6;
-  color: #526078;
+  color: var(--neutral-600);
   font-size: 12px;
   letter-spacing: 0;
   white-space: nowrap;
@@ -199,7 +199,7 @@
 .admin-cell-caption {
   display: block;
   margin-top: 3px;
-  color: #919bad;
+  color: var(--neutral-600);
   font-size: 11px;
 }
 
@@ -278,7 +278,7 @@
   border: 1px solid #e6e9f0;
   border-radius: 0 0 13px 13px;
   background: #fff;
-  color: #68758d;
+  color: var(--neutral-600);
   font-size: 13px;
   letter-spacing: 0;
   text-align: center;
@@ -360,5 +360,166 @@
 
   .admin-title-row {
     flex-direction: column;
+  }
+}
+
+.admin-page {
+  background:
+    radial-gradient(ellipse at 88% 5%, rgb(228 239 230 / 70%), transparent 28rem),
+    var(--neutral-50);
+}
+
+.admin-content {
+  width: min(100%, 1200px);
+}
+
+.admin-header {
+  border-color: var(--border);
+}
+
+.admin-refresh {
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+  color: var(--brand-blue);
+}
+
+.admin-refresh:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.admin-title-row h1 {
+  color: var(--brand-blue);
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.admin-title-row .auth-eyebrow {
+  color: var(--brand-green);
+}
+
+.admin-description {
+  color: var(--muted-foreground);
+}
+
+.admin-count {
+  border-color: rgb(192 166 89 / 45%);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.admin-count strong {
+  color: var(--brand-blue);
+}
+
+.admin-count span,
+.admin-result-count {
+  color: var(--muted-foreground);
+}
+
+.admin-toolbar {
+  border-color: var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--card);
+}
+
+.admin-tabs button.is-active {
+  color: var(--brand-blue);
+}
+
+.admin-tabs button.is-active::after {
+  background: var(--brand-green);
+}
+
+.admin-table-wrap {
+  border-color: var(--border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 8px 26px rgb(19 64 105 / 5%);
+}
+
+.admin-table th {
+  border-color: var(--border);
+  background: var(--neutral-50);
+  color: var(--neutral-600);
+}
+
+.admin-table td {
+  border-color: var(--border);
+}
+
+.admin-table td strong {
+  color: var(--brand-blue);
+}
+
+.admin-cell-caption {
+  color: var(--neutral-600);
+}
+
+.admin-status--pending {
+  background: #fff5df;
+  color: #76500a;
+}
+
+.admin-status--approved {
+  background: var(--accent);
+  color: #075d07;
+}
+
+.admin-status--rejected {
+  background: #fcebed;
+  color: #8f2734;
+}
+
+.admin-action {
+  border-radius: var(--radius-sm);
+}
+
+.admin-action--approve {
+  border-color: rgb(0 125 0 / 20%);
+  background: var(--accent);
+  color: #075d07;
+}
+
+.admin-action--reject {
+  border-color: rgb(180 35 50 / 20%);
+  color: #8f2734;
+}
+
+.admin-action--data {
+  border-color: var(--border);
+  color: var(--brand-blue);
+}
+
+.admin-empty {
+  border-color: var(--border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 8px 26px rgb(19 64 105 / 5%);
+}
+
+.admin-empty h2 {
+  color: var(--brand-blue);
+}
+
+.admin-empty-icon {
+  border: 1px solid rgb(0 125 0 / 20%);
+  background: var(--accent);
+  color: #075d07;
+}
+
+.admin-page :focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .admin-toolbar {
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .admin-tabs {
+    gap: 14px;
+  }
+
+  .admin-result-count {
+    text-align: right;
   }
 }

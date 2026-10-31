@@ -1,0 +1,139 @@
+ATUALIZAÇÃO DO FRONT-END - Gabinete Estadual de Rondônia
+
+COMO USAR ESTE ARQUIVO
+- Leia primeiro o spec.json (principalmente agent_rules R01-R10). Estas tarefas correspondem às etapas B11 a B17 do build_order. A seção update_requests do spec.json tem o mesmo conteúdo em formato compacto.
+- Faça UMA etapa por vez, com diff pequeno (R04). Ao final de cada etapa rode: tsc --noEmit, eslint, build e testes.
+- São mudanças de front-end. NÃO altere schema do banco, políticas RLS, storage nem a lógica das Edge Functions. NÃO mude rotas, hooks, queries, schemas zod nem o comportamento do RouteGuard que já existem.
+- Não instale nenhum pacote sem informar nome e motivo (R05). Prefira o que já está no stack (shadcn/ui + tailwind).
+- Não coloque scripts, fontes ou imagens vindos de CDN de terceiros (L09 e CSP do S08).
+
+ORDEM DE EXECUÇÃO
+1) Bug intermitente de CSS, local e produção (B11)
+2) Redefinir senha (B12)
+3) Nome, identidade visual e redesign (B13 a B17)
+
+----------------------------------------------------------------------
+TAREFA 1 - Bug intermitente de CSS, local e produção (B11)
+----------------------------------------------------------------------
+Sintoma: às vezes o site fica sem CSS. Algumas páginas aparecem estilizadas e outras não.
+
+Importante: isso acontece também no localhost (npm run dev). Então a causa está no código ou na configuração do projeto, não na Vercel. Depure primeiro localmente. As causas que só existem em produção (cache, rewrites, CSP, configuração do projeto na Vercel) ficam para o final e só entram se o bug continuar no site publicado.
+
+Diagnóstico (faça ANTES de mudar código):
+1. No localhost, abra uma rota que falha e inspecione um elemento sem estilo (DevTools, aba Elements). Veja se a classe está no elemento mas sem nenhuma regra CSS aplicada (o Tailwind não gerou a classe) ou se a folha de estilo inteira não carregou (aba Network, filtro CSS).
+2. Na aba Network, confira se o CSS principal é pedido nessa rota, com status 200 e content-type text/css.
+3. Olhe o terminal do "npm run dev" e o Console do navegador: erros do Tailwind ou do PostCSS, "Failed to resolve import", "Failed to fetch dynamically imported module", erros de CSS e o overlay de erro do Vite.
+4. Anote quando acontece: na primeira carga, ao navegar entre páginas sem recarregar, depois de Ctrl+Shift+R ou depois de salvar um arquivo (HMR). Teste também se o problema some ao apagar a pasta node_modules/.vite e reiniciar o servidor.
+5. Compare "npm run dev" com "npm run build && npm run preview". Falhando nos dois: configuração ou estrutura dos imports de CSS. Falhando só no preview: remoção de classes (purge), minificação ou divisão em chunks.
+
+Causas prováveis (confirme cada uma antes de corrigir):
+C1. Os caminhos de content do Tailwind não cobrem todas as pastas que usam classes (src/components/ui, src/pages, index.html...). Classes usadas só em arquivos não cobertos nunca são geradas, e por isso só algumas páginas ficam quebradas. Confira o tailwind.config (v3) ou a detecção de fontes (v4) e o components.json.
+C2. CSS global importado no lugar errado: o index.css (com as diretivas ou o import do Tailwind) deve ser importado uma única vez, em src/main.tsx, nunca dentro de uma página ou de um componente carregado sob demanda. Remova restos do template do Vite (App.css, index.css duplicado) e garanta uma única configuração de Tailwind (sem misturar v3 e v4, sem tailwind.config junto com um @theme conflitante).
+C3. CSS importado por componentes de rota ou por chunks carregados sob demanda (import './Pagina.css'): a ordem de carregamento muda com a navegação, então regras de uma página sobrescrevem ou vazam para outra, e um chunk que falha leva embora o estilo daquela página. Mova as regras compartilhadas para o arquivo global ou para classes do Tailwind e evite CSS de página sem escopo.
+C4. URLs relativas de CSS ou de arquivos (<link href="styles.css">, url(imagens/x.png) no CSS, arquivos de public/ citados sem a barra inicial) quebram em rotas aninhadas como /my-submissions/123, no dev e em produção. Use caminhos absolutos começando com "/" e base '/' no vite.config.
+C5. Classes montadas dinamicamente (ex.: bg-${cor}-500) nunca são geradas pelo Tailwind, nem classes que vêm do banco de dados. Use nomes de classe completos e literais ou um mapa de correspondência.
+C6. Problemas de PostCSS ou de Vite: postcss.config ausente ou com nome errado, plugin errado (@tailwindcss/vite x plugin do PostCSS), configurações duplicadas (.js e .cjs), cache velho em node_modules/.vite.
+C7. Configuração do shadcn/ui: o caminho de css no components.json aponta para um arquivo diferente do que é importado, variáveis CSS (--background, --foreground, --primary...) ausentes em :root, ou a classe dark alternando de forma inconsistente, o que faz alguns componentes aparecerem sem cor.
+C8. Nomes de arquivo com espaço, acento ou maiúsculas diferentes entre o import e o arquivo real (Logo.png x logo.png). Funciona no Windows e no macOS e falha no build Linux. Use nomes em minúsculas, sem acento, em kebab-case.
+C9. Só em produção, confira por último: index.html antigo apontando para arquivos com hash que não existem mais depois de um deploy; fallback de SPA devolvendo index.html para um arquivo que não existe (CSS servido como text/html); CSP do S08 bloqueando estilos inline usados pelo shadcn/Radix; configuração do projeto na Vercel (Framework Preset "Vite", build "npm run build", output "dist", versão do Node em package.json engines, package-lock.json commitado). A configuração da Vercel é feita no painel, então documente no README.
+
+Reforço para produção (só depois de corrigir a causa local, e só se o site publicado ainda falhar):
+- Cache-Control "no-cache" para index.html e "public, max-age=31536000, immutable" para /assets/*.
+- Listener do evento 'vite:preloadError' que recarrega a página uma única vez.
+- vercel.json: /assets/* nunca é reescrito, e o fallback de SPA vale só para caminhos que não são arquivos.
+- CSP: permitir 'unsafe-inline' apenas em style-src. Nunca afrouxe script-src.
+
+Se não achar a causa, pare e relate em vez de adivinhar: quais rotas falham, as evidências do DevTools (Elements e Network), os arquivos de configuração do Tailwind, PostCSS e Vite, o src/main.tsx e o index.css.
+
+Critérios de aceite:
+- Com "npm run dev", toda rota aparece totalmente estilizada na primeira carga, ao navegar entre todas as rotas e ao recarregar à força um link direto.
+- O mesmo resultado com "npm run build && npm run preview" e no site publicado.
+- Sem erros de CSS, Tailwind ou PostCSS no terminal e no Console, e sem erros 404, de MIME ou de CSP na aba Network em /login e /campaigns.
+- Um teste de fumaça ou uma lista de conferência manual que visite todas as rotas.
+- A causa raiz confirmada está escrita na descrição do PR e em docs/CHANGELOG.md. Não aplique correções para causas que não foram observadas.
+
+----------------------------------------------------------------------
+TAREFA 2 - Redefinir senha (B12)
+----------------------------------------------------------------------
+Hoje o usuário que esquece a senha não tem como recuperá-la.
+
+Use somente o que o Supabase já oferece (R01, R02): supabase.auth.resetPasswordForEmail e supabase.auth.updateUser. Nada de token próprio.
+
+Rotas novas (públicas): /forgot-password e /reset-password.
+
+Fluxo:
+1. Na tela /login, adicione o link "Esqueci minha senha" apontando para /forgot-password.
+2. /forgot-password: formulário com e-mail e captcha (Turnstile, igual ao login). Chame
+   supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password', captchaToken })
+   Mostre SEMPRE a mesma mensagem, exista ou não o e-mail: "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha." (S09, sem enumeração de usuários). Desabilite o botão por 60 segundos após o envio.
+3. O e-mail leva o usuário a /reset-password. A página deve escutar supabase.auth.onAuthStateChange e reagir ao evento 'PASSWORD_RECOVERY' (e também checar se já existe sessão de recuperação). Sem sessão de recuperação, mostre "Link inválido ou expirado" com botão para /forgot-password e NÃO chame updateUser.
+4. Formulário com nova senha e confirmação, validado com zod: mínimo de 10 caracteres (auth_rules.password_min_length) e confirmação igual. Chame supabase.auth.updateUser({ password }). Em caso de sucesso, chame supabase.auth.signOut(), mostre um aviso de sucesso e redirecione para /login.
+5. RouteGuard: /forgot-password e /reset-password devem abrir para qualquer usuário, inclusive pending e rejected, e um usuário em sessão de recuperação não pode ser redirecionado antes de trocar a senha.
+6. Nunca registre em log o e-mail nem tokens (R09). Não leia o token da URL manualmente: o supabase-js já faz isso.
+
+Testes (vitest + testing-library):
+- Mesma mensagem para e-mail cadastrado e não cadastrado.
+- /reset-password sem sessão de recuperação mostra "link inválido" e não chama updateUser.
+- Senha com menos de 10 caracteres ou confirmação diferente é recusada.
+- Após trocar a senha, o usuário é deslogado e vai para /login.
+- Usuários pending e rejected conseguem abrir as duas rotas.
+
+Critérios de aceite: fluxo completo funcionando (pedir link, abrir o e-mail, trocar a senha, entrar com a nova), testes passando, passos manuais documentados no README.
+
+----------------------------------------------------------------------
+TAREFA 3 - Nome, identidade visual e redesign (B13 a B17)
+----------------------------------------------------------------------
+B13 - Base da identidade (sem mudar layout ainda)
+- Nome: trocar "DeMolay Rondônia" por "Gabinete Estadual de Rondônia" (um espaço só entre as palavras).
+- Crie src/config/site.ts exportando SITE_NAME e use essa constante em todo lugar.
+- Procure no projeto (src/, index.html, public/, supabase/functions/, README) por "DeMolay Rondônia", "DeMolay Rondonia", "DeMolay RO" e "DeMolay-RO". Troque em títulos, meta tags, cabeçalho, rodapé, telas de login e cadastro, e-mails enviados pelas Edge Functions e README.
+- NÃO renomeie o nome do pacote, o repositório, identificadores do banco nem a chave "demolay-ro-campaigns" do spec. Onde o texto se refere à Ordem DeMolay em si (e não ao nome do site), mantenha.
+- Nas páginas /privacy e /terms, troque só o nome e deixe uma nota no PR pedindo revisão humana do texto, porque é conteúdo jurídico.
+- Referência visual: o arquivo img/EMBLEMA VIRTUDES ATEMPORAIS.png é a referência de todo o rebranding. Abra a imagem antes de qualquer trabalho de design: cores, clima e formalidade das telas devem seguir o que está nela. Não mova, renomeie, edite nem apague esse arquivo; ele fica em img/.
+- Emblema: copie img/EMBLEMA VIRTUDES ATEMPORAIS.png para src/assets/brand/emblema-virtudes-atemporais.png (a cópia é renomeada, sem espaços nem maiúsculas, ver causa C8; o app importa só a cópia, nunca o arquivo de img/). Gere o favicon e os ícones (32, 180, 192 e 512 px) em public/. Use width e height nas imagens para evitar salto de layout e alt="Emblema Virtudes Atemporais".
+- Cores: NÃO chute valores. Abra img/EMBLEMA VIRTUDES ATEMPORAIS.png e amostre com conta-gotas o azul, o verde e o dourado principais (pode usar um script descartável com node-vibrant, sem deixá-lo como dependência do app). Registre os valores amostrados em docs/design-tokens.md.
+- Defina as cores como variáveis CSS em src/index.css, ligadas aos tokens do shadcn: --primary (azul), --secondary e --accent (verde), um token dourado para destaques, mais cinzas neutros. Nada de hex fixo dentro de componentes.
+- Contraste: pares texto/fundo precisam passar WCAG AA (4,5:1 para texto normal e 3:1 para texto grande). O dourado costuma falhar como texto sobre branco. Use o dourado em bordas, ícones, badges, divisores e títulos grandes sobre azul escuro, e o azul escuro para texto e botões.
+- Fonte: Inter autohospedada com @fontsource-variable/inter (nada de Google Fonts por CDN).
+
+B14 - Estrutura do app e telas de acesso
+- Cabeçalho com emblema, SITE_NAME e menu do usuário. Menu lateral recolhível nas telas logadas, que vira gaveta (Sheet) no celular.
+- Telas: /login, /signup, /forgot-password, /reset-password, /awaiting-approval, /privacy, /terms.
+- Login e cadastro em duas colunas no desktop: painel com a cor da marca, emblema e uma frase curta de um lado, formulário em fundo branco do outro. Em telas pequenas, só o formulário com o emblema no topo.
+
+B15 - Telas de membro
+- /campaigns, /campaigns/:id, /activities/:id/submit, /my-submissions, /my-submissions/:id, /ranking.
+
+B16 - Telas de revisor e admin
+- /review, /review/:submissionId, /export e todas as rotas /admin/*.
+
+Direção visual (vale para B14 a B16): moderna e limpa.
+- Espaçamento em múltiplos de 8 px, container com largura máxima, bordas arredondadas (rounded-lg), sombras suaves, sem gradientes pesados.
+- Somente componentes shadcn/ui (Button, Card, Badge, Table, Dialog, Sheet, Tabs, Form, Skeleton, Sonner para avisos).
+- Badges de status sempre com texto, nunca só com cor: rascunho (cinza), enviado (azul), devolvido (âmbar), aprovado (verde).
+- Estados de carregamento com Skeleton, estados vazios com chamada para ação, erros de formulário em pt-BR junto ao campo, anel de foco visível.
+- Mobile primeiro. Teste em 360, 768 e 1280 px. Tabelas viram cartões ou rolam na horizontal no celular.
+- Pacotes novos permitidos, informando nome e motivo: @fontsource-variable/inter, sonner, lucide-react (se ainda não vier com o shadcn).
+
+Restrições do redesign: só visual. Mantenha rotas, props, hooks, queries, schemas zod, comportamento do RouteGuard e chamadas que dependem de RLS exatamente como estão. Sem dangerouslySetInnerHTML (S07). Sem scripts ou fontes de terceiros (L09).
+
+B17 - Revisão final
+- Conferência em 360, 768 e 1280 px, contraste AA, navegação por teclado, tsc + eslint + build + testes, README atualizado.
+
+Critérios de aceite da Tarefa 3:
+- Uma busca pelo nome antigo em src/, index.html, public/ e supabase/functions/ não retorna nada (exceto referência à Ordem DeMolay em si).
+- Nenhum componente tem cor fixa em hex: tudo usa tokens.
+- Lighthouse Accessibility de 90 ou mais em /login e /campaigns.
+- Todas as telas conferidas nos três tamanhos.
+
+----------------------------------------------------------------------
+AÇÕES MANUAIS (fora do código, o Copilot não faz)
+----------------------------------------------------------------------
+Supabase (painel):
+- Authentication > URL Configuration: adicionar a URL de produção e a de /reset-password (e localhost para desenvolvimento) em Redirect URLs.
+- Authentication > Email Templates: ajustar "Reset Password" e "Confirm signup" para pt-BR e para o novo nome do site.
+- Confirmar que o SMTP próprio está configurado (o envio padrão do Supabase tem limite baixo).
+Vercel (painel):
+- Conferir Framework Preset "Vite", build "npm run build", output "dist" e a versão do Node.
+Cloudflare Turnstile:
+- Se o endereço do site mudar, incluir o novo hostname (sem https://) na lista do widget.
