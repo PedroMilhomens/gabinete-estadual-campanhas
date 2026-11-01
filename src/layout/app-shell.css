@@ -44,6 +44,26 @@
   gap: 16px;
 }
 
+.app-shell-report-bug {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-shell-report-bug:hover {
+  border-color: var(--border);
+  background: var(--neutral-50);
+  color: var(--brand-blue);
+}
+
 .app-shell-user-menu {
   position: relative;
 }
@@ -322,6 +342,21 @@
 
   .app-shell-header .app-shell-user-chevron {
     display: none;
+  }
+
+  .app-shell-report-bug {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app-shell-report-bug span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .app-shell-header .app-shell-user-menu summary {

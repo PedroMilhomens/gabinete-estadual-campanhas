@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   BarChart3,
+  Bug,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import emblem from '../assets/brand/emblema-virtudes-atemporais.png'
-import { SITE_NAME } from '../config/site'
+import { BUG_REPORT_URL, SITE_NAME } from '../config/site'
 import { useAuth } from '../features/auth/use-auth'
 import { ThemeToggle } from '../theme/theme-provider'
 import './app-shell.css'
@@ -181,6 +182,16 @@ export function AuthenticatedShell({ children }: { children?: ReactNode }) {
           <span>{SITE_NAME}</span>
         </Link>
         <div className="app-shell-header-actions">
+          <a
+            className="app-shell-report-bug"
+            href={BUG_REPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Relatar um bug"
+          >
+            <Bug aria-hidden="true" size={18} />
+            <span>Relatar bug</span>
+          </a>
           <ThemeToggle placement="header" />
           {profile && (
             <UserMenu

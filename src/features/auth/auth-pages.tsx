@@ -18,7 +18,7 @@ import { getAuthFailureMessage } from './auth-errors'
 import { CaptchaField } from './captcha-field'
 import { useAuth } from './use-auth'
 import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
-import { SITE_NAME } from '../../config/site'
+import { BUG_REPORT_URL, SITE_NAME } from '../../config/site'
 import {
   clearPasswordRecovery,
   hasPasswordRecoveryMarker,
@@ -86,6 +86,13 @@ function AuthLayout({
               <nav aria-label="Informações institucionais">
                 <Link to="/privacy">Privacidade</Link>
                 <Link to="/terms">Termos</Link>
+                <a
+                  href={BUG_REPORT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Relatar bug
+                </a>
               </nav>
             </footer>
           </div>

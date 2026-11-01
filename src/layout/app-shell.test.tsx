@@ -74,6 +74,13 @@ describe('AuthenticatedShell', () => {
     expect(screen.getByRole('link', { name: /Meus envios/ })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /Avaliações/ })).toBeNull()
 
+    const bugReportLink = screen.getByRole('link', { name: 'Relatar um bug' })
+    expect(bugReportLink.getAttribute('href')).toBe(
+      'https://forms.gle/Ss1LQGWjBLfCbS8a8',
+    )
+    expect(bugReportLink.getAttribute('target')).toBe('_blank')
+    expect(bugReportLink.getAttribute('rel')).toBe('noopener noreferrer')
+
     const collapseButton = screen.getByRole('button', {
       name: 'Recolher menu lateral',
     })
