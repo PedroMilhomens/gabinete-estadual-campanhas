@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(65);
+select plan(68);
 
 insert into public.chapters (id, name, number, city)
 values
@@ -13,13 +13,28 @@ values
 insert into public.campaigns (id, name)
 values ('c0000000-0000-0000-0000-000000000003', 'Test campaign');
 
-insert into public.activities (id, campaign_id, name, points)
-values (
-  'd0000000-0000-0000-0000-000000000004',
-  'c0000000-0000-0000-0000-000000000003',
-  'Test activity',
-  100
-);
+insert into public.activities (
+  id,
+  campaign_id,
+  name,
+  points,
+  multiple_submissions
+)
+values
+  (
+    'd0000000-0000-0000-0000-000000000004',
+    'c0000000-0000-0000-0000-000000000003',
+    'Test activity',
+    100,
+    false
+  ),
+  (
+    'd0000000-0000-0000-0000-000000000007',
+    'c0000000-0000-0000-0000-000000000003',
+    'Multiple submission activity',
+    100,
+    true
+  );
 
 insert into auth.users (
   id,
@@ -261,6 +276,47 @@ select throws_ok(
 select lives_ok(
   $$update public.profiles set full_name = 'Updated Member A' where id = auth.uid()$$,
   'member can update their own full name'
+);
+select throws_ok(
+  $$insert into public.submissions (
+      activity_id, chapter_id, submitted_by, status
+    ) values (
+      'd0000000-0000-0000-0000-000000000004',
+      'a0000000-0000-0000-0000-000000000001',
+      auth.uid(),
+      'draft'
+    )$$,
+  '23514',
+  'Esta atividade permite apenas um envio por capítulo.',
+  'activity without multiple submissions rejects a second chapter submission'
+);
+select lives_ok(
+  $$insert into public.submissions (
+      activity_id, chapter_id, submitted_by, status
+    ) values
+      (
+        'd0000000-0000-0000-0000-000000000007',
+        'a0000000-0000-0000-0000-000000000001',
+        auth.uid(),
+        'draft'
+      ),
+      (
+        'd0000000-0000-0000-0000-000000000007',
+        'a0000000-0000-0000-0000-000000000001',
+        auth.uid(),
+        'draft'
+      )$$,
+  'activity with multiple submissions accepts repeated submissions from the chapter'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.submissions
+    where activity_id = 'd0000000-0000-0000-0000-000000000007'
+      and chapter_id = 'a0000000-0000-0000-0000-000000000001'
+  ),
+  2,
+  'multiple submissions are stored as distinct chapter records'
 );
 select throws_ok(
   $$update public.submissions set score = 80 where id = 'e0000000-0000-0000-0000-000000000005'$$,

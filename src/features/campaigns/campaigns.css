@@ -3,7 +3,11 @@
   padding: 30px 26px 64px;
   box-sizing: border-box;
   background:
-    radial-gradient(ellipse at 86% 8%, rgb(222 235 255 / 54%), transparent 29rem),
+    radial-gradient(
+      ellipse at 86% 8%,
+      rgb(222 235 255 / 54%),
+      transparent 29rem
+    ),
     #f7f8fb;
 }
 
@@ -506,6 +510,29 @@
   accent-color: #293e70;
 }
 
+.campaign-checkbox--multiple {
+  align-items: flex-start;
+}
+
+.campaign-checkbox--multiple input {
+  width: 16px;
+  min-height: 16px;
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+}
+
+.campaign-checkbox--multiple span {
+  display: grid;
+  gap: 4px;
+}
+
+.campaign-checkbox--multiple small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 1.45;
+}
+
 .campaign-form-error {
   grid-column: 1 / -1;
   margin: 0;
@@ -634,7 +661,11 @@
 
 .campaign-page--admin {
   background:
-    radial-gradient(ellipse at 88% 5%, rgb(228 239 230 / 70%), transparent 28rem),
+    radial-gradient(
+      ellipse at 88% 5%,
+      rgb(228 239 230 / 70%),
+      transparent 28rem
+    ),
     var(--neutral-50);
 }
 
@@ -758,7 +789,11 @@
 
 .campaign-page--member {
   background:
-    radial-gradient(ellipse at 86% 8%, rgb(228 239 230 / 72%), transparent 29rem),
+    radial-gradient(
+      ellipse at 86% 8%,
+      rgb(228 239 230 / 72%),
+      transparent 29rem
+    ),
     var(--neutral-50);
 }
 
@@ -774,7 +809,11 @@
   border: 1px solid rgb(192 166 89 / 35%);
   border-radius: var(--radius-xl);
   background:
-    radial-gradient(circle at 92% 10%, rgb(255 255 255 / 12%), transparent 18rem),
+    radial-gradient(
+      circle at 92% 10%,
+      rgb(255 255 255 / 12%),
+      transparent 18rem
+    ),
     var(--brand-blue);
   box-shadow: 0 16px 36px rgb(19 64 105 / 11%);
 }

@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
-import { useDropzone } from 'react-dropzone'
-import type { FileRejection } from 'react-dropzone'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { z } from 'zod'
-import { useAuth } from '../auth/use-auth'
-import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
-import { SITE_NAME } from '../../config/site'
+import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { useDropzone } from "react-dropzone";
+import type { FileRejection } from "react-dropzone";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
+import { z } from "zod";
+import { useAuth } from "../auth/use-auth";
+import emblem from "../../assets/brand/emblema-virtudes-atemporais.png";
+import { SITE_NAME } from "../../config/site";
 import {
   ALLOWED_ATTACHMENT_TYPES,
   MAX_ATTACHMENT_SIZE,
@@ -17,14 +23,14 @@ import {
   submissionSchema,
   type Submission,
   type SubmissionListItem,
-} from './submission-schema'
-import './submissions.css'
+} from "./submission-schema";
+import "./submissions.css";
 
 const submissionDetailSelection =
-  'id, activity_id, chapter_id, submitted_by, description, status, score, reviewed_at, created_at, activity:activities(id, name, points, due_at, campaign:campaigns(name)), attachments(id, storage_path, mime, size_bytes), comments(id, body, created_at, author:profiles(full_name))'
+  "id, activity_id, chapter_id, submitted_by, description, status, score, reviewed_at, created_at, activity:activities(id, name, points, due_at, multiple_submissions, campaign:campaigns(name)), attachments(id, storage_path, mime, size_bytes), comments(id, body, created_at, author:profiles(full_name))";
 
 const submissionListSelection =
-  'id, activity_id, chapter_id, submitted_by, description, status, score, created_at, activity:activities(name, campaign:campaigns(name))'
+  "id, activity_id, chapter_id, submitted_by, description, status, score, created_at, activity:activities(name, campaign:campaigns(name))";
 
 const activityRecordSchema = z.object({
   id: z.string().uuid(),
@@ -32,39 +38,45 @@ const activityRecordSchema = z.object({
   description: z.string().nullable(),
   points: z.number().int().nullable(),
   due_at: z.string().nullable(),
+  multiple_submissions: z.boolean(),
   campaign: z.object({ name: z.string() }).nullable(),
-})
+});
 
-type ActivityRecord = z.infer<typeof activityRecordSchema>
+type ActivityRecord = z.infer<typeof activityRecordSchema>;
 
-type SignedAttachment = Submission['attachments'][number] & {
-  signedUrl: string
-}
+const submissionOwnerSchema = z.object({
+  id: z.string().uuid(),
+  submitted_by: z.string().uuid(),
+});
 
-const statusLabels: Record<SubmissionListItem['status'], string> = {
-  draft: 'Rascunho',
-  submitted: 'Enviada',
-  returned: 'Devolvida',
-  approved: 'Aprovada',
-}
+type SignedAttachment = Submission["attachments"][number] & {
+  signedUrl: string;
+};
+
+const statusLabels: Record<SubmissionListItem["status"], string> = {
+  draft: "Rascunho",
+  submitted: "Enviada",
+  returned: "Devolvida",
+  approved: "Aprovada",
+};
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return null
-  const date = new Date(value)
+  if (!value) return null;
+  const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? null
-    : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
+    : new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(date);
 }
 
 function formatDateTime(value: string | null | undefined) {
-  if (!value) return null
-  const date = new Date(value)
+  if (!value) return null;
+  const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? null
-    : new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(date)
+    : new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
 }
 
 function PageHeader() {
@@ -88,15 +100,19 @@ function PageHeader() {
         <Link to="/my-submissions">Meus envios</Link>
       </nav>
     </header>
-  )
+  );
 }
 
-function SubmissionStatus({ status }: { status: SubmissionListItem['status'] }) {
+function SubmissionStatus({
+  status,
+}: {
+  status: SubmissionListItem["status"];
+}) {
   return (
     <span className={`submission-status submission-status--${status}`}>
       {statusLabels[status]}
     </span>
-  )
+  );
 }
 
 function AttachmentDropzone({
@@ -104,47 +120,52 @@ function AttachmentDropzone({
   onFiles,
   existingCount,
 }: {
-  files: File[]
-  onFiles: (files: File[], error: string | null) => void
-  existingCount: number
+  files: File[];
+  onFiles: (files: File[], error: string | null) => void;
+  existingCount: number;
 }) {
-  const remainingSlots = Math.max(0, MAX_ATTACHMENTS - existingCount - files.length)
+  const remainingSlots = Math.max(
+    0,
+    MAX_ATTACHMENTS - existingCount - files.length,
+  );
   const onDrop = useCallback(
     (acceptedFiles: File[], fileRejections: FileRejection[]) => {
       const error = fileRejections.length
         ? fileRejections.some((rejection) =>
-            rejection.errors.some((item) => item.code === 'file-too-large'),
+            rejection.errors.some((item) => item.code === "file-too-large"),
           )
-          ? 'Cada arquivo deve ter no máximo 5 MB.'
+          ? "Cada arquivo deve ter no máximo 5 MB."
           : fileRejections.some((rejection) =>
-                rejection.errors.some((item) => item.code === 'file-invalid-type'),
+                rejection.errors.some(
+                  (item) => item.code === "file-invalid-type",
+                ),
               )
-            ? 'Use apenas imagens JPEG, PNG ou arquivos PDF.'
-            : 'É possível anexar no máximo cinco arquivos por envio.'
-        : null
-      onFiles([...files, ...acceptedFiles], error)
+            ? "Use apenas imagens JPEG, PNG ou arquivos PDF."
+            : "É possível anexar no máximo cinco arquivos por envio."
+        : null;
+      onFiles([...files, ...acceptedFiles], error);
     },
     [files, onFiles],
-  )
+  );
   const { getRootProps, getInputProps, isDragActive, isDragReject, open } =
     useDropzone({
       onDrop,
       accept: {
-        'image/jpeg': ['.jpg', '.jpeg'],
-        'image/png': ['.png'],
-        'application/pdf': ['.pdf'],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+        "application/pdf": [".pdf"],
       },
       maxSize: MAX_ATTACHMENT_SIZE,
       maxFiles: remainingSlots,
       multiple: true,
       noClick: true,
       disabled: remainingSlots === 0,
-    })
+    });
 
   return (
     <div
       {...getRootProps({
-        className: `attachment-dropzone${isDragActive ? ' is-active' : ''}${isDragReject ? ' is-rejected' : ''}${remainingSlots === 0 ? ' is-full' : ''}`,
+        className: `attachment-dropzone${isDragActive ? " is-active" : ""}${isDragReject ? " is-rejected" : ""}${remainingSlots === 0 ? " is-full" : ""}`,
       })}
     >
       <input {...getInputProps()} />
@@ -155,9 +176,9 @@ function AttachmentDropzone({
         <strong>
           {remainingSlots
             ? isDragActive
-              ? 'Solte os arquivos aqui'
-              : 'Arraste arquivos ou escolha no dispositivo'
-            : 'Limite de anexos atingido'}
+              ? "Solte os arquivos aqui"
+              : "Arraste arquivos ou escolha no dispositivo"
+            : "Limite de anexos atingido"}
         </strong>
         <p>JPEG, PNG ou PDF · até 5 MB cada · máximo de 5 arquivos</p>
       </div>
@@ -171,7 +192,7 @@ function AttachmentDropzone({
         </button>
       )}
     </div>
-  )
+  );
 }
 
 function SubmissionEditor({
@@ -179,225 +200,228 @@ function SubmissionEditor({
   existingSubmission,
   onCreated,
 }: {
-  activity: ActivityRecord
-  existingSubmission: Submission | null
-  onCreated: (submissionId: string) => void
+  activity: ActivityRecord;
+  existingSubmission: Submission | null;
+  onCreated: (submissionId: string) => void;
 }) {
-  const { client, profile, session } = useAuth()
+  const { client, profile, session } = useAuth();
   const [description, setDescription] = useState(
-    existingSubmission?.description ?? '',
-  )
-  const [newFiles, setNewFiles] = useState<File[]>([])
-  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>([])
-  const [fileError, setFileError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+    existingSubmission?.description ?? "",
+  );
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>(
+    [],
+  );
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const keptAttachments =
     existingSubmission?.attachments.filter(
       (attachment) => !removedAttachmentIds.includes(attachment.id),
-    ) ?? []
+    ) ?? [];
   const isEditable =
     !existingSubmission ||
     (existingSubmission.submitted_by === session?.user.id &&
-      ['draft', 'returned'].includes(existingSubmission.status))
+      ["draft", "returned"].includes(existingSubmission.status));
 
   const removeNewFile = (fileToRemove: File) => {
-    setNewFiles((current) =>
-      current.filter((file) => file !== fileToRemove),
-    )
-    setFileError(null)
-  }
+    setNewFiles((current) => current.filter((file) => file !== fileToRemove));
+    setFileError(null);
+  };
 
   const uploadFiles = async (submissionId: string) => {
     if (!profile?.chapter_id) {
-      throw new Error('O perfil não está vinculado a um capítulo.')
+      throw new Error("O perfil não está vinculado a um capítulo.");
     }
 
-    const uploadedPaths: string[] = []
+    const uploadedPaths: string[] = [];
     const metadata: {
-      submission_id: string
-      storage_path: string
-      mime: string
-      size_bytes: number
-    }[] = []
+      submission_id: string;
+      storage_path: string;
+      mime: string;
+      size_bytes: number;
+    }[] = [];
 
     for (const file of newFiles) {
       const parsedFile = attachmentFileSchema.safeParse({
         type: file.type,
         size: file.size,
-      })
+      });
       if (!parsedFile.success) {
-        throw new Error('O tipo ou tamanho de um dos anexos não é permitido.')
+        throw new Error("O tipo ou tamanho de um dos anexos não é permitido.");
       }
 
-      const extensionByMime: Record<(typeof ALLOWED_ATTACHMENT_TYPES)[number], string> = {
-        'image/jpeg': 'jpg',
-        'image/png': 'png',
-        'application/pdf': 'pdf',
-      }
-      const mime = ALLOWED_ATTACHMENT_TYPES.find((type) => type === file.type)
-      const extension = mime ? extensionByMime[mime] : undefined
+      const extensionByMime: Record<
+        (typeof ALLOWED_ATTACHMENT_TYPES)[number],
+        string
+      > = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "application/pdf": "pdf",
+      };
+      const mime = ALLOWED_ATTACHMENT_TYPES.find((type) => type === file.type);
+      const extension = mime ? extensionByMime[mime] : undefined;
       if (!extension) {
-        throw new Error('Use apenas arquivos JPEG, PNG ou PDF.')
+        throw new Error("Use apenas arquivos JPEG, PNG ou PDF.");
       }
 
-      const storagePath = `${profile.chapter_id}/${submissionId}/${crypto.randomUUID()}.${extension}`
+      const storagePath = `${profile.chapter_id}/${submissionId}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await client.storage
-        .from('attachments')
+        .from("attachments")
         .upload(storagePath, file, {
           contentType: file.type,
           upsert: false,
-        })
+        });
 
       if (uploadError) {
         const cleanup =
           uploadedPaths.length > 0
-            ? await client.storage.from('attachments').remove(uploadedPaths)
-            : { error: null }
+            ? await client.storage.from("attachments").remove(uploadedPaths)
+            : { error: null };
         const cleanupMessage = cleanup.error
-          ? ' Alguns arquivos temporários podem precisar de remoção pelo suporte.'
-          : ''
-        throw new Error(
-          `Não foi possível enviar os anexos.${cleanupMessage}`,
-        )
+          ? " Alguns arquivos temporários podem precisar de remoção pelo suporte."
+          : "";
+        throw new Error(`Não foi possível enviar os anexos.${cleanupMessage}`);
       }
 
-      uploadedPaths.push(storagePath)
+      uploadedPaths.push(storagePath);
       metadata.push({
         submission_id: submissionId,
         storage_path: storagePath,
         mime: file.type,
         size_bytes: file.size,
-      })
+      });
     }
 
-    if (metadata.length === 0) return
+    if (metadata.length === 0) return;
 
     const { error: metadataError } = await client
-      .from('attachments')
-      .insert(metadata)
+      .from("attachments")
+      .insert(metadata);
 
     if (metadataError) {
       const cleanup = await client.storage
-        .from('attachments')
-        .remove(uploadedPaths)
+        .from("attachments")
+        .remove(uploadedPaths);
       const cleanupMessage = cleanup.error
-        ? ' Alguns arquivos temporários podem precisar de remoção pelo suporte.'
-        : ''
+        ? " Alguns arquivos temporários podem precisar de remoção pelo suporte."
+        : "";
       throw new Error(
         `Não foi possível registrar os anexos enviados.${cleanupMessage}`,
-      )
+      );
     }
-  }
+  };
 
   const removeDeletedAttachments = async () => {
-    if (!existingSubmission || removedAttachmentIds.length === 0) return
+    if (!existingSubmission || removedAttachmentIds.length === 0) return;
 
     const deletedAttachments = existingSubmission.attachments.filter(
       (attachment) => removedAttachmentIds.includes(attachment.id),
-    )
-    const paths = deletedAttachments.map((attachment) => attachment.storage_path)
+    );
+    const paths = deletedAttachments.map(
+      (attachment) => attachment.storage_path,
+    );
     const { error: storageError } = await client.storage
-      .from('attachments')
-      .remove(paths)
+      .from("attachments")
+      .remove(paths);
     if (storageError) {
-      throw new Error('Não foi possível remover um ou mais anexos.')
+      throw new Error("Não foi possível remover um ou mais anexos.");
     }
 
     const { data: deletedRows, error: metadataError } = await client
-      .from('attachments')
+      .from("attachments")
       .delete()
-      .in('id', removedAttachmentIds)
-      .select('id')
+      .in("id", removedAttachmentIds)
+      .select("id");
     if (metadataError || deletedRows.length !== removedAttachmentIds.length) {
       throw new Error(
-        'Os arquivos foram removidos, mas não foi possível atualizar a lista de anexos. Tente recarregar a página.',
-      )
+        "Os arquivos foram removidos, mas não foi possível atualizar a lista de anexos. Tente recarregar a página.",
+      );
     }
-  }
+  };
 
   const save = async (submit: boolean) => {
-    setFormError(null)
-    setFileError(null)
+    setFormError(null);
+    setFileError(null);
 
-    const parsedForm = submissionFormSchema.safeParse({ description })
+    const parsedForm = submissionFormSchema.safeParse({ description });
     if (!parsedForm.success) {
       setFormError(
-        parsedForm.error.issues[0]?.message ?? 'Revise a descrição informada.',
-      )
-      return
+        parsedForm.error.issues[0]?.message ?? "Revise a descrição informada.",
+      );
+      return;
     }
     if (submit && !parsedForm.data.description) {
-      setFormError('Escreva uma descrição antes de enviar para avaliação.')
-      return
+      setFormError("Escreva uma descrição antes de enviar para avaliação.");
+      return;
     }
     if (keptAttachments.length + newFiles.length > MAX_ATTACHMENTS) {
-      setFormError('Um envio pode conter no máximo cinco anexos.')
-      return
+      setFormError("Um envio pode conter no máximo cinco anexos.");
+      return;
     }
     if (!profile?.chapter_id || !session) {
-      setFormError('Não foi possível verificar seu capítulo. Entre novamente.')
-      return
+      setFormError("Não foi possível verificar seu capítulo. Entre novamente.");
+      return;
     }
 
-    setSaving(true)
+    setSaving(true);
     try {
-      let submissionId = existingSubmission?.id
+      let submissionId = existingSubmission?.id;
 
       if (!submissionId) {
         const { data, error } = await client
-          .from('submissions')
+          .from("submissions")
           .insert({
             activity_id: activity.id,
             chapter_id: profile.chapter_id,
             submitted_by: session.user.id,
             description: parsedForm.data.description || null,
-            status: 'draft',
+            status: "draft",
           })
-          .select('id')
-          .single()
+          .select("id")
+          .single();
 
         if (error || !data) {
           setFormError(
-            'Não foi possível iniciar o envio. Talvez seu capítulo já tenha um cadastro para esta atividade.',
-          )
-          return
+            "Não foi possível iniciar o envio. Talvez seu capítulo já tenha um cadastro para esta atividade.",
+          );
+          return;
         }
-        submissionId = data.id
+        submissionId = data.id;
       }
 
-      await uploadFiles(submissionId)
-      await removeDeletedAttachments()
+      await uploadFiles(submissionId);
+      await removeDeletedAttachments();
 
       const { data: updatedSubmission, error: updateError } = await client
-        .from('submissions')
+        .from("submissions")
         .update({
           description: parsedForm.data.description || null,
-          status: submit ? 'submitted' : 'draft',
+          status: submit ? "submitted" : "draft",
         })
-        .eq('id', submissionId)
-        .select('id')
-        .maybeSingle()
+        .eq("id", submissionId)
+        .select("id")
+        .maybeSingle();
 
       if (updateError || !updatedSubmission) {
         setFormError(
-          'Os dados foram salvos como rascunho, mas não foi possível atualizar o envio. Recarregue e tente novamente.',
-        )
-        return
+          "Os dados foram salvos como rascunho, mas não foi possível atualizar o envio. Recarregue e tente novamente.",
+        );
+        return;
       }
 
-      onCreated(submissionId)
+      onCreated(submissionId);
     } catch (error) {
       setFormError(
         error instanceof Error
           ? error.message
-          : 'Não foi possível salvar o envio. Tente novamente.',
-      )
+          : "Não foi possível salvar o envio. Tente novamente.",
+      );
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   if (!isEditable) {
     return (
@@ -405,15 +429,15 @@ function SubmissionEditor({
         Esta atividade já possui um envio do seu capítulo. Somente quem criou o
         envio pode editar ou reenviar.
       </div>
-    )
+    );
   }
 
   return (
     <form
       className="submission-editor"
       onSubmit={(event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
-        void save(true)
+        event.preventDefault();
+        void save(true);
       }}
     >
       <label className="submission-field">
@@ -440,10 +464,10 @@ function SubmissionEditor({
           {keptAttachments.map((attachment) => (
             <div className="submission-file" key={attachment.id}>
               <span className="submission-file-icon" aria-hidden="true">
-                {attachment.mime === 'application/pdf' ? 'PDF' : 'IMG'}
+                {attachment.mime === "application/pdf" ? "PDF" : "IMG"}
               </span>
               <span className="submission-file-name">
-                {attachment.storage_path.split('/').at(-1)}
+                {attachment.storage_path.split("/").at(-1)}
               </span>
               <span className="submission-file-size">
                 {(attachment.size_bytes / (1024 * 1024)).toFixed(1)} MB
@@ -471,9 +495,12 @@ function SubmissionEditor({
         <section className="submission-existing-files">
           <h3>Novos anexos</h3>
           {newFiles.map((file, index) => (
-            <div className="submission-file" key={`${file.name}-${file.size}-${index}`}>
+            <div
+              className="submission-file"
+              key={`${file.name}-${file.size}-${index}`}
+            >
               <span className="submission-file-icon" aria-hidden="true">
-                {file.type === 'application/pdf' ? 'PDF' : 'IMG'}
+                {file.type === "application/pdf" ? "PDF" : "IMG"}
               </span>
               <span className="submission-file-name">{file.name}</span>
               <span className="submission-file-size">
@@ -497,8 +524,8 @@ function SubmissionEditor({
         files={newFiles}
         existingCount={keptAttachments.length}
         onFiles={(files, error) => {
-          setNewFiles(files)
-          setFileError(error)
+          setNewFiles(files);
+          setFileError(error);
         }}
       />
       {fileError && (
@@ -528,7 +555,7 @@ function SubmissionEditor({
           disabled={saving}
           onClick={() => void save(false)}
         >
-          {saving ? 'Salvando…' : 'Salvar rascunho'}
+          {saving ? "Salvando…" : "Salvar rascunho"}
         </button>
         <button
           className="submission-button submission-button--primary"
@@ -536,135 +563,205 @@ function SubmissionEditor({
           disabled={saving}
         >
           {saving
-            ? 'Enviando…'
-            : existingSubmission?.status === 'returned'
-              ? 'Reenviar para avaliação'
-              : 'Enviar para avaliação'}
+            ? "Enviando…"
+            : existingSubmission?.status === "returned"
+              ? "Reenviar para avaliação"
+              : "Enviar para avaliação"}
         </button>
       </div>
     </form>
-  )
+  );
 }
 
 function SubmissionFormPage() {
-  const { client, profile, session, loading: authLoading, error: authError } =
-    useAuth()
-  const chapterId = profile?.chapter_id
-  const sessionUserId = session?.user.id
-  const { activityId } = useParams()
-  const navigate = useNavigate()
-  const [activity, setActivity] = useState<ActivityRecord | null>(null)
+  const {
+    client,
+    profile,
+    session,
+    loading: authLoading,
+    error: authError,
+  } = useAuth();
+  const chapterId = profile?.chapter_id;
+  const sessionUserId = session?.user.id;
+  const { activityId } = useParams();
+  const [searchParams] = useSearchParams();
+  const selectedSubmissionId = searchParams.get("submissionId");
+  const navigate = useNavigate();
+  const [activity, setActivity] = useState<ActivityRecord | null>(null);
   const [existingSubmission, setExistingSubmission] =
-    useState<Submission | null>(null)
-  const [chapterSubmissionExists, setChapterSubmissionExists] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+    useState<Submission | null>(null);
+  const [chapterSubmissionCount, setChapterSubmissionCount] = useState(0);
+  const [chapterSubmissionExists, setChapterSubmissionExists] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!activityId || !chapterId || !sessionUserId) {
-      setLoadError('Não foi possível determinar a atividade ou o capítulo.')
-      setLoading(false)
-      return
+      setLoadError("Não foi possível determinar a atividade ou o capítulo.");
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
-    setLoadError(null)
-    setExistingSubmission(null)
-    setChapterSubmissionExists(false)
+    setLoading(true);
+    setLoadError(null);
+    setExistingSubmission(null);
+    setChapterSubmissionExists(false);
+    setChapterSubmissionCount(0);
 
     try {
-      const [{ data: activityData, error: activityError }, submissionResult] =
-        await Promise.all([
-          client
-            .from('activities')
-            .select(
-              'id, name, description, points, due_at, campaign:campaigns(name)',
-            )
-            .eq('id', activityId)
-            .maybeSingle(),
-          client
-            .from('submissions')
-            .select(submissionDetailSelection)
-            .eq('activity_id', activityId)
-            .eq('chapter_id', chapterId)
-            .maybeSingle(),
-        ])
+      const submissionOwnerQuery = client
+        .from("submissions")
+        .select("id, submitted_by")
+        .eq("activity_id", activityId)
+        .eq("chapter_id", chapterId);
+      const submissionOwnerResult = selectedSubmissionId
+        ? await submissionOwnerQuery
+            .eq("id", selectedSubmissionId)
+            .maybeSingle()
+        : await submissionOwnerQuery
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+      const [
+        { data: activityData, error: activityError },
+        submissionCountResult,
+      ] = await Promise.all([
+        client
+          .from("activities")
+          .select(
+            "id, name, description, points, due_at, multiple_submissions, campaign:campaigns(name)",
+          )
+          .eq("id", activityId)
+          .maybeSingle(),
+        client
+          .from("submissions")
+          .select("id", { count: "exact", head: true })
+          .eq("activity_id", activityId)
+          .eq("chapter_id", chapterId),
+      ]);
 
       if (activityError || !activityData) {
-        setLoadError('Não foi possível carregar esta atividade.')
-        return
+        setLoadError("Não foi possível carregar esta atividade.");
+        return;
       }
-      const parsedActivity = activityRecordSchema.safeParse(activityData)
+      const parsedActivity = activityRecordSchema.safeParse(activityData);
       if (!parsedActivity.success) {
-        setLoadError('Os dados desta atividade não puderam ser validados.')
-        return
+        setLoadError("Os dados desta atividade não puderam ser validados.");
+        return;
       }
-      setActivity(parsedActivity.data)
+      setActivity(parsedActivity.data);
 
-      if (submissionResult.error) {
-        setLoadError('Não foi possível carregar o envio desta atividade.')
-        return
+      if (submissionCountResult.error || submissionCountResult.count === null) {
+        setLoadError("Não foi possível carregar o envio desta atividade.");
+        return;
       }
 
-      if (submissionResult.data) {
-        if (submissionResult.data.submitted_by !== sessionUserId) {
-          setChapterSubmissionExists(true)
-          setExistingSubmission(null)
-        } else {
-          const parsedSubmission = submissionSchema.safeParse(
-            submissionResult.data,
-          )
-          if (!parsedSubmission.success) {
-            setLoadError('Os dados do envio não puderam ser validados.')
-            return
-          } else {
-            setChapterSubmissionExists(false)
+      if (submissionOwnerResult.error) {
+        setLoadError("Não foi possível carregar o envio desta atividade.");
+        return;
+      }
+
+      const parsedSubmissionOwner = submissionOwnerSchema
+        .nullable()
+        .safeParse(submissionOwnerResult.data);
+      if (!parsedSubmissionOwner.success) {
+        setLoadError(
+          "Os dados do envio desta atividade não puderam ser validados.",
+        );
+        return;
+      }
+
+      setChapterSubmissionCount(submissionCountResult.count);
+      let selectedSubmission: z.infer<typeof submissionOwnerSchema> | undefined;
+      if (parsedActivity.data.multiple_submissions) {
+        if (selectedSubmissionId) {
+          if (
+            !parsedSubmissionOwner.data ||
+            parsedSubmissionOwner.data.id !== selectedSubmissionId ||
+            parsedSubmissionOwner.data.submitted_by !== sessionUserId
+          ) {
+            setLoadError("Não foi possível localizar este envio para edição.");
+            return;
           }
-          setExistingSubmission(parsedSubmission.data)
+          selectedSubmission = parsedSubmissionOwner.data;
+        }
+      } else if (parsedSubmissionOwner.data) {
+        if (parsedSubmissionOwner.data.submitted_by !== sessionUserId) {
+          setChapterSubmissionExists(true);
+        } else {
+          selectedSubmission = parsedSubmissionOwner.data;
         }
       }
+
+      if (selectedSubmission) {
+        const { data: detailData, error: detailError } = await client
+          .from("submissions")
+          .select(submissionDetailSelection)
+          .eq("id", selectedSubmission.id)
+          .maybeSingle();
+        if (detailError || !detailData) {
+          setLoadError("Não foi possível carregar o envio desta atividade.");
+          return;
+        }
+        const parsedSubmission = submissionSchema.safeParse(detailData);
+        if (!parsedSubmission.success) {
+          setLoadError("Os dados do envio não puderam ser validados.");
+          return;
+        }
+        setExistingSubmission(parsedSubmission.data);
+      }
     } catch {
-      setLoadError('Não foi possível carregar a atividade. Tente novamente.')
+      setLoadError("Não foi possível carregar a atividade. Tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [activityId, chapterId, client, sessionUserId])
+  }, [activityId, chapterId, client, selectedSubmissionId, sessionUserId]);
 
   useEffect(() => {
-    if (!authLoading && profile?.status === 'approved' && profile.role === 'member') {
+    if (
+      !authLoading &&
+      profile?.status === "approved" &&
+      profile.role === "member"
+    ) {
       const request = window.setTimeout(() => {
-        void loadData()
-      }, 0)
-      return () => window.clearTimeout(request)
+        void loadData();
+      }, 0);
+      return () => window.clearTimeout(request);
     }
-    return undefined
-  }, [authLoading, loadData, profile?.role, profile?.status])
+    return undefined;
+  }, [authLoading, loadData, profile?.role, profile?.status]);
 
   if (authLoading) {
     return (
       <main className="submission-page">
         <p role="status">Verificando sua conta…</p>
       </main>
-    )
+    );
   }
   if (authError) {
     return (
       <main className="submission-page">
-        <p className="submission-alert" role="alert">{authError}</p>
+        <p className="submission-alert" role="alert">
+          {authError}
+        </p>
       </main>
-    )
+    );
   }
-  if (!session) return <Navigate to="/login" replace />
-  if (profile?.status !== 'approved') {
-    return <Navigate to="/awaiting-approval" replace />
+  if (!session) return <Navigate to="/login" replace />;
+  if (profile?.status !== "approved") {
+    return <Navigate to="/awaiting-approval" replace />;
   }
-  if (profile.role !== 'member') return <Navigate to="/" replace />
+  if (profile.role !== "member") return <Navigate to="/" replace />;
 
   return (
     <main className="submission-page">
       <section className="submission-content">
         <PageHeader />
-        <nav className="submission-breadcrumb" aria-label="Navegação estrutural">
+        <nav
+          className="submission-breadcrumb"
+          aria-label="Navegação estrutural"
+        >
           <Link to="/campaigns">Campanhas</Link>
           <span aria-hidden="true">/</span>
           <Link to="/my-submissions">Meus envios</Link>
@@ -690,27 +787,40 @@ function SubmissionFormPage() {
           <>
             <header className="submission-title">
               <p className="submission-eyebrow">
-                {activity.campaign?.name ?? 'Campanha estadual'}
+                {activity.campaign?.name ?? "Campanha estadual"}
               </p>
               <h1>{activity.name}</h1>
               <p>{activity.description}</p>
               <div className="submission-activity-meta">
                 <span>{activity.points ?? 0} pontos</span>
+                {activity.multiple_submissions && (
+                  <span>Múltiplos envios habilitados</span>
+                )}
                 {activity.due_at && (
                   <span>Prazo: {formatDateTime(activity.due_at)}</span>
                 )}
               </div>
             </header>
+            {activity.multiple_submissions && chapterSubmissionCount > 0 && (
+              <p className="submission-panel" role="status">
+                Seu capítulo já possui {chapterSubmissionCount}{" "}
+                {chapterSubmissionCount === 1 ? "envio" : "envios"} nesta
+                atividade. Você pode criar outro ou acompanhar os anteriores em{" "}
+                <Link to="/my-submissions">Meus envios</Link>.
+              </p>
+            )}
             <section className="submission-panel">
               <div className="submission-section-title">
                 <div>
                   <p className="submission-eyebrow">Envio do capítulo</p>
                   <h2>
-                    {existingSubmission?.status === 'returned'
-                      ? 'Revise e reenvie'
-                      : existingSubmission
-                        ? 'Atualize seu envio'
-                        : 'Registrar atividade'}
+                    {activity.multiple_submissions && !existingSubmission
+                      ? "Novo envio"
+                      : existingSubmission?.status === "returned"
+                        ? "Revise e reenvie"
+                        : existingSubmission
+                          ? "Atualize seu envio"
+                          : "Registrar atividade"}
                   </h2>
                 </div>
                 {existingSubmission && (
@@ -740,81 +850,92 @@ function SubmissionFormPage() {
         ) : null}
       </section>
     </main>
-  )
+  );
 }
 
 function MySubmissionsPage() {
-  const { client, profile, session, loading: authLoading, error: authError } =
-    useAuth()
-  const chapterId = profile?.chapter_id
-  const sessionUserId = session?.user.id
-  const [submissions, setSubmissions] = useState<SubmissionListItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const {
+    client,
+    profile,
+    session,
+    loading: authLoading,
+    error: authError,
+  } = useAuth();
+  const chapterId = profile?.chapter_id;
+  const sessionUserId = session?.user.id;
+  const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadSubmissions = useCallback(async () => {
     if (!sessionUserId || !chapterId) {
-      setLoadError('Não foi possível determinar seu capítulo.')
-      setLoading(false)
-      return
+      setLoadError("Não foi possível determinar seu capítulo.");
+      setLoading(false);
+      return;
     }
-    setLoading(true)
-    setLoadError(null)
+    setLoading(true);
+    setLoadError(null);
 
     try {
       const { data, error } = await client
-        .from('submissions')
+        .from("submissions")
         .select(submissionListSelection)
-        .eq('submitted_by', sessionUserId)
-        .eq('chapter_id', chapterId)
-        .order('created_at', { ascending: false })
+        .eq("submitted_by", sessionUserId)
+        .eq("chapter_id", chapterId)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        setLoadError('Não foi possível carregar seus envios. Tente novamente.')
-        return
+        setLoadError("Não foi possível carregar seus envios. Tente novamente.");
+        return;
       }
-      const parsed = z.array(submissionListItemSchema).safeParse(data)
+      const parsed = z.array(submissionListItemSchema).safeParse(data);
       if (!parsed.success) {
-        setLoadError('A lista de envios retornou dados inválidos.')
-        return
+        setLoadError("A lista de envios retornou dados inválidos.");
+        return;
       }
-      setSubmissions(parsed.data)
+      setSubmissions(parsed.data);
     } catch {
-      setLoadError('Não foi possível carregar seus envios. Tente novamente.')
+      setLoadError("Não foi possível carregar seus envios. Tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [chapterId, client, sessionUserId])
+  }, [chapterId, client, sessionUserId]);
 
   useEffect(() => {
-    if (!authLoading && profile?.status === 'approved' && profile.role === 'member') {
+    if (
+      !authLoading &&
+      profile?.status === "approved" &&
+      profile.role === "member"
+    ) {
       const request = window.setTimeout(() => {
-        void loadSubmissions()
-      }, 0)
-      return () => window.clearTimeout(request)
+        void loadSubmissions();
+      }, 0);
+      return () => window.clearTimeout(request);
     }
-    return undefined
-  }, [authLoading, loadSubmissions, profile?.role, profile?.status])
+    return undefined;
+  }, [authLoading, loadSubmissions, profile?.role, profile?.status]);
 
   if (authLoading) {
     return (
       <main className="submission-page">
         <p role="status">Verificando sua conta…</p>
       </main>
-    )
+    );
   }
   if (authError) {
     return (
       <main className="submission-page">
-        <p className="submission-alert" role="alert">{authError}</p>
+        <p className="submission-alert" role="alert">
+          {authError}
+        </p>
       </main>
-    )
+    );
   }
-  if (!session) return <Navigate to="/login" replace />
-  if (profile?.status !== 'approved') {
-    return <Navigate to="/awaiting-approval" replace />
+  if (!session) return <Navigate to="/login" replace />;
+  if (profile?.status !== "approved") {
+    return <Navigate to="/awaiting-approval" replace />;
   }
-  if (profile.role !== 'member') return <Navigate to="/" replace />
+  if (profile.role !== "member") return <Navigate to="/" replace />;
 
   return (
     <main className="submission-page">
@@ -824,7 +945,9 @@ function MySubmissionsPage() {
           <div>
             <p className="submission-eyebrow">Acompanhamento</p>
             <h1>Meus envios</h1>
-            <p>Acompanhe os rascunhos, avaliações e devoluções do seu capítulo.</p>
+            <p>
+              Acompanhe os rascunhos, avaliações e devoluções do seu capítulo.
+            </p>
           </div>
           <Link
             className="submission-button submission-button--primary"
@@ -872,12 +995,11 @@ function MySubmissionsPage() {
               >
                 <div className="my-submission-info">
                   <span className="submission-eyebrow">
-                    {submission.activity.campaign?.name ??
-                      'Campanha estadual'}
+                    {submission.activity.campaign?.name ?? "Campanha estadual"}
                   </span>
                   <h2>{submission.activity.name}</h2>
                   <p>
-                    Atualizado em {formatDate(submission.created_at) ?? '—'}
+                    Atualizado em {formatDate(submission.created_at) ?? "—"}
                   </p>
                 </div>
                 <div className="my-submission-meta">
@@ -897,122 +1019,136 @@ function MySubmissionsPage() {
         )}
       </section>
     </main>
-  )
+  );
 }
 
 function SubmissionDetailPage() {
-  const { client, profile, session, loading: authLoading, error: authError } =
-    useAuth()
-  const chapterId = profile?.chapter_id
-  const sessionUserId = session?.user.id
-  const { submissionId } = useParams()
-  const [submission, setSubmission] = useState<Submission | null>(null)
-  const [attachments, setAttachments] = useState<SignedAttachment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const {
+    client,
+    profile,
+    session,
+    loading: authLoading,
+    error: authError,
+  } = useAuth();
+  const chapterId = profile?.chapter_id;
+  const sessionUserId = session?.user.id;
+  const { submissionId } = useParams();
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [attachments, setAttachments] = useState<SignedAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   const loadSubmission = useCallback(async () => {
     if (!submissionId || !sessionUserId || !chapterId) {
-      setLoadError('Não foi possível determinar o envio solicitado.')
-      setLoading(false)
-      return
+      setLoadError("Não foi possível determinar o envio solicitado.");
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
-    setLoadError(null)
-    setAttachmentError(null)
-    setAttachments([])
-    let hasLoadedSubmission = false
+    setLoading(true);
+    setLoadError(null);
+    setAttachmentError(null);
+    setAttachments([]);
+    let hasLoadedSubmission = false;
     try {
       const { data, error } = await client
-        .from('submissions')
+        .from("submissions")
         .select(submissionDetailSelection)
-        .eq('id', submissionId)
-        .eq('chapter_id', chapterId)
-        .eq('submitted_by', sessionUserId)
-        .maybeSingle()
+        .eq("id", submissionId)
+        .eq("chapter_id", chapterId)
+        .eq("submitted_by", sessionUserId)
+        .maybeSingle();
 
       if (error || !data) {
-        setLoadError('Não foi possível localizar este envio.')
-        return
+        setLoadError("Não foi possível localizar este envio.");
+        return;
       }
-      const parsed = submissionSchema.safeParse(data)
+      const parsed = submissionSchema.safeParse(data);
       if (!parsed.success) {
-        setLoadError('Os dados deste envio não puderam ser validados.')
-        return
+        setLoadError("Os dados deste envio não puderam ser validados.");
+        return;
       }
-      setSubmission(parsed.data)
-      hasLoadedSubmission = true
+      setSubmission(parsed.data);
+      hasLoadedSubmission = true;
 
       const signedResults = await Promise.all(
         parsed.data.attachments.map(async (attachment) => {
           const { data: signedData, error: signedError } = await client.storage
-            .from('attachments')
-            .createSignedUrl(attachment.storage_path, 300)
+            .from("attachments")
+            .createSignedUrl(attachment.storage_path, 300);
           if (signedError || !signedData) {
             throw new Error(
-              'Não foi possível gerar os links temporários dos anexos.',
-            )
+              "Não foi possível gerar os links temporários dos anexos.",
+            );
           }
-          return { ...attachment, signedUrl: signedData.signedUrl }
+          return { ...attachment, signedUrl: signedData.signedUrl };
         }),
-      )
-      setAttachments(signedResults)
+      );
+      setAttachments(signedResults);
     } catch (error) {
       if (hasLoadedSubmission) {
         setAttachmentError(
           error instanceof Error
             ? error.message
-            : 'Não foi possível carregar os anexos.',
-        )
+            : "Não foi possível carregar os anexos.",
+        );
       } else {
         setLoadError(
           error instanceof Error
             ? error.message
-            : 'Não foi possível carregar o envio. Tente novamente.',
-        )
+            : "Não foi possível carregar o envio. Tente novamente.",
+        );
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [chapterId, client, sessionUserId, submissionId])
+  }, [chapterId, client, sessionUserId, submissionId]);
 
   useEffect(() => {
-    if (!authLoading && profile?.status === 'approved' && profile.role === 'member') {
+    if (
+      !authLoading &&
+      profile?.status === "approved" &&
+      profile.role === "member"
+    ) {
       const request = window.setTimeout(() => {
-        void loadSubmission()
-      }, 0)
-      return () => window.clearTimeout(request)
+        void loadSubmission();
+      }, 0);
+      return () => window.clearTimeout(request);
     }
-    return undefined
-  }, [authLoading, loadSubmission, profile?.role, profile?.status])
+    return undefined;
+  }, [authLoading, loadSubmission, profile?.role, profile?.status]);
 
   if (authLoading) {
     return (
       <main className="submission-page">
         <p role="status">Verificando sua conta…</p>
       </main>
-    )
+    );
   }
   if (authError) {
     return (
       <main className="submission-page">
-        <p className="submission-alert" role="alert">{authError}</p>
+        <p className="submission-alert" role="alert">
+          {authError}
+        </p>
       </main>
-    )
+    );
   }
-  if (!session) return <Navigate to="/login" replace />
-  if (profile?.status !== 'approved') {
-    return <Navigate to="/awaiting-approval" replace />
+  if (!session) return <Navigate to="/login" replace />;
+  if (profile?.status !== "approved") {
+    return <Navigate to="/awaiting-approval" replace />;
   }
-  if (profile.role !== 'member') return <Navigate to="/" replace />
+  if (profile.role !== "member") return <Navigate to="/" replace />;
 
   return (
     <main className="submission-page">
       <section className="submission-content">
         <PageHeader />
-        <nav className="submission-breadcrumb" aria-label="Navegação estrutural">
+        <nav
+          className="submission-breadcrumb"
+          aria-label="Navegação estrutural"
+        >
           <Link to="/my-submissions">Meus envios</Link>
           <span aria-hidden="true">/</span>
           <span>Detalhes</span>
@@ -1037,10 +1173,10 @@ function SubmissionDetailPage() {
             <header className="submission-detail-heading">
               <div>
                 <p className="submission-eyebrow">
-                  {submission.activity.campaign?.name ?? 'Campanha estadual'}
+                  {submission.activity.campaign?.name ?? "Campanha estadual"}
                 </p>
                 <h1>{submission.activity.name}</h1>
-                <p>Enviado em {formatDate(submission.created_at) ?? '—'}</p>
+                <p>Enviado em {formatDate(submission.created_at) ?? "—"}</p>
               </div>
               <SubmissionStatus status={submission.status} />
             </header>
@@ -1049,22 +1185,23 @@ function SubmissionDetailPage() {
                 <h2>Descrição enviada</h2>
                 {submission.score !== null && (
                   <span className="submission-score">
-                    {submission.score} / {submission.activity.points ?? '—'} pontos
+                    {submission.score} / {submission.activity.points ?? "—"}{" "}
+                    pontos
                   </span>
                 )}
               </div>
               <p className="submission-description">
-                {submission.description || 'Nenhuma descrição informada.'}
+                {submission.description || "Nenhuma descrição informada."}
               </p>
-              {(submission.status === 'draft' ||
-                submission.status === 'returned') && (
+              {(submission.status === "draft" ||
+                submission.status === "returned") && (
                 <Link
                   className="submission-button submission-button--primary"
-                  to={`/activities/${submission.activity_id}/submit`}
+                  to={`/activities/${submission.activity_id}/submit?submissionId=${submission.id}`}
                 >
-                  {submission.status === 'returned'
-                    ? 'Editar e reenviar'
-                    : 'Continuar rascunho'}
+                  {submission.status === "returned"
+                    ? "Editar e reenviar"
+                    : "Continuar rascunho"}
                 </Link>
               )}
             </section>
@@ -1089,18 +1226,22 @@ function SubmissionDetailPage() {
                 </div>
               )}
               {attachments.map((attachment) => (
-                <div className="submission-detail-attachment" key={attachment.id}>
-                  {attachment.mime.startsWith('image/') ? (
+                <div
+                  className="submission-detail-attachment"
+                  key={attachment.id}
+                >
+                  {attachment.mime.startsWith("image/") ? (
                     <a
                       href={attachment.signedUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="submission-image-preview"
                     >
-                      <img src={attachment.signedUrl} alt="Anexo da atividade" />
-                      <span>
-                        {attachment.storage_path.split('/').at(-1)}
-                      </span>
+                      <img
+                        src={attachment.signedUrl}
+                        alt="Anexo da atividade"
+                      />
+                      <span>{attachment.storage_path.split("/").at(-1)}</span>
                     </a>
                   ) : (
                     <a
@@ -1110,7 +1251,7 @@ function SubmissionDetailPage() {
                       rel="noreferrer"
                     >
                       <span className="submission-file-icon">PDF</span>
-                      <span>{attachment.storage_path.split('/').at(-1)}</span>
+                      <span>{attachment.storage_path.split("/").at(-1)}</span>
                       <span aria-hidden="true">↗</span>
                     </a>
                   )}
@@ -1135,7 +1276,7 @@ function SubmissionDetailPage() {
                     <article className="submission-comment" key={comment.id}>
                       <header>
                         <strong>
-                          {comment.author?.full_name ?? 'Equipe de avaliação'}
+                          {comment.author?.full_name ?? "Equipe de avaliação"}
                         </strong>
                         <time dateTime={comment.created_at}>
                           {formatDateTime(comment.created_at)}
@@ -1151,7 +1292,7 @@ function SubmissionDetailPage() {
         )}
       </section>
     </main>
-  )
+  );
 }
 
-export { SubmissionFormPage, MySubmissionsPage, SubmissionDetailPage }
+export { SubmissionFormPage, MySubmissionsPage, SubmissionDetailPage };
