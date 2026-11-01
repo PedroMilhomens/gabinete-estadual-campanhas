@@ -36,6 +36,7 @@ describe("activitySchema", () => {
     points: 10,
     dueAt: "2026-11-30T23:59:00.000Z",
     multipleSubmissions: false,
+    reviewerManaged: false,
   };
 
   it("accepts valid activity data", () => {
@@ -56,6 +57,15 @@ describe("activitySchema", () => {
       activitySchema.safeParse({
         ...activity,
         multipleSubmissions: true,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts an activity managed and scored by reviewers", () => {
+    expect(
+      activitySchema.safeParse({
+        ...activity,
+        reviewerManaged: true,
       }).success,
     ).toBe(true);
   });

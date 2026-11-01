@@ -7,16 +7,16 @@ import { useAuth } from '../auth/use-auth'
 import emblem from '../../assets/brand/emblema-virtudes-atemporais.png'
 import { SITE_NAME } from '../../config/site'
 import {
-  calculateChapterRankings,
+  chapterRankingSchema,
   csvCell,
-  rankingRecordSchema,
+  internalActivityPointsSchema,
   reviewFormSchema,
   reviewListItemSchema,
   reviewSubmissionSchema,
   type ReviewFormValues,
   type ReviewListItem,
   type ReviewSubmission,
-  type RankingRecord,
+  type ChapterRankingRecord,
 } from './review-schema'
 import './review.css'
 
@@ -25,9 +25,6 @@ const reviewListSelection =
 
 const reviewDetailSelection =
   `${reviewListSelection}, reviewed_at, attachments(id, storage_path, mime, size_bytes), comments(id, body, created_at, author:profiles!comments_author_id_fkey(full_name))`
-
-const rankingSelection =
-  'id, chapter_id, status, score, chapter:chapters!submissions_chapter_id_fkey(id, name, number), activity:activities!submissions_activity_id_fkey(campaign_id, campaign:campaigns!activities_campaign_id_fkey(id, name))'
 
 const chapterOptionsSchema = z.array(
   z.object({ id: z.string().uuid(), name: z.string(), number: z.number().int().nullable() }),
@@ -40,6 +37,8 @@ const activityOptionsSchema = z.array(
     id: z.string().uuid(),
     name: z.string(),
     campaign_id: z.string().uuid().nullable(),
+    points: z.number().int().nullable(),
+    reviewer_managed: z.boolean(),
   }),
 )
 
@@ -147,6 +146,13 @@ export function ReviewerSubmissionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
+  const [internalActivityId, setInternalActivityId] = useState('')
+  const [internalChapterId, setInternalChapterId] = useState('')
+  const [internalScore, setInternalScore] = useState('')
+  const [internalSaving, setInternalSaving] = useState(false)
+  const [internalError, setInternalError] = useState<string | null>(null)
+  const [internalNotice, setInternalNotice] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
   const pageSize = 50
   const notice = z.object({ notice: z.string() }).safeParse(location.state)
 
@@ -159,7 +165,7 @@ export function ReviewerSubmissionsPage() {
         const [chapterResult, campaignResult, activityResult] = await Promise.all([
           client.from('chapters').select('id, name, number').order('number'),
           client.from('campaigns').select('id, name').order('name'),
-          client.from('activities').select('id, name, campaign_id').order('name'),
+          client.from('activities').select('id, name, campaign_id, points, reviewer_managed').order('name'),
         ])
         for (const result of [chapterResult, campaignResult, activityResult]) {
           if (result.error) throw result.error
@@ -202,11 +208,60 @@ export function ReviewerSubmissionsPage() {
     return () => {
       active = false
     }
-  }, [client, chapterId, campaignId, activityId, status, page])
+  }, [client, chapterId, campaignId, activityId, status, page, reloadToken])
 
   const filteredActivities = activities.filter(
     (activity) => !campaignId || activity.campaign_id === campaignId,
   )
+  const internalActivities = activities.filter(
+    (activity) => activity.reviewer_managed && activity.points !== null,
+  )
+  const selectedInternalActivity = internalActivities.find(
+    (activity) => activity.id === internalActivityId,
+  )
+
+  async function submitInternalPoints(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setInternalError(null)
+    setInternalNotice(null)
+    const validation = internalActivityPointsSchema.safeParse({
+      activityId: internalActivityId,
+      chapterId: internalChapterId,
+      score: internalScore === '' ? Number.NaN : Number(internalScore),
+    })
+    if (!validation.success) {
+      setInternalError(validation.error.issues[0]?.message ?? 'Confira os dados informados.')
+      return
+    }
+    if (
+      selectedInternalActivity?.points === null ||
+      selectedInternalActivity === undefined ||
+      validation.data.score > selectedInternalActivity.points
+    ) {
+      setInternalError('A pontuação não pode superar o limite da atividade selecionada.')
+      return
+    }
+
+    setInternalSaving(true)
+    try {
+      const result = await client.rpc('record_internal_activity_points', {
+        p_activity_id: validation.data.activityId,
+        p_chapter_id: validation.data.chapterId,
+        p_score: validation.data.score,
+      })
+      if (result.error) throw result.error
+      if (!result.data) throw new Error('The points record was not returned.')
+      setInternalNotice('Pontuação registrada para o capítulo.')
+      setInternalScore('')
+      setReloadToken((current) => current + 1)
+    } catch {
+      setInternalError(
+        'Não foi possível registrar os pontos. Verifique o limite da atividade e se já existe um lançamento para esse capítulo.',
+      )
+    } finally {
+      setInternalSaving(false)
+    }
+  }
 
   return (
     <ReviewFrame>
@@ -216,6 +271,67 @@ export function ReviewerSubmissionsPage() {
         description="Filtre os envios recebidos e registre a decisão da campanha."
       />
       {notice.success && <p className="review-success" role="status">{notice.data.notice}</p>}
+      <section className="review-card">
+        <h2>Registrar pontos de atividade interna</h2>
+        <p className="review-muted">
+          Este lançamento contabiliza a pontuação do capítulo sem exigir envio
+          dos membros.
+        </p>
+        <form className="review-form" onSubmit={(event) => void submitInternalPoints(event)}>
+          <label>
+            Atividade
+            <select
+              required
+              value={internalActivityId}
+              onChange={(event) => setInternalActivityId(event.target.value)}
+            >
+              <option value="">Selecione uma atividade interna</option>
+              {internalActivities.map((activity) => (
+                <option key={activity.id} value={activity.id}>{activity.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Capítulo
+            <select
+              required
+              value={internalChapterId}
+              onChange={(event) => setInternalChapterId(event.target.value)}
+            >
+              <option value="">Selecione um capítulo</option>
+              {chapters.map((chapter) => (
+                <option key={chapter.id} value={chapter.id}>
+                  {chapter.number ? `${chapter.number} — ` : ''}{chapter.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Pontuação{selectedInternalActivity ? ` (0 a ${selectedInternalActivity.points})` : ''}
+            <input
+              type="number"
+              min="0"
+              max={selectedInternalActivity?.points ?? undefined}
+              step="1"
+              required
+              value={internalScore}
+              onChange={(event) => setInternalScore(event.target.value)}
+            />
+          </label>
+          {internalError && <ReviewError>{internalError}</ReviewError>}
+          {internalNotice && <p className="review-success" role="status">{internalNotice}</p>}
+          <button
+            className="review-submit"
+            type="submit"
+            disabled={internalSaving || internalActivities.length === 0 || chapters.length === 0}
+          >
+            {internalSaving ? 'Registrando…' : 'Registrar pontos'}
+          </button>
+          {internalActivities.length === 0 && (
+            <p className="review-muted">Não há atividades internas com limite de pontos cadastrado.</p>
+          )}
+        </form>
+      </section>
       <section className="review-card" aria-label="Filtros de avaliações">
         <div className="review-filters">
           <label>
@@ -305,7 +421,7 @@ export function ReviewerSubmissionsPage() {
                       <strong>{row.activity.campaign?.name ?? 'Campanha removida'}</strong>
                       <span className="review-table-secondary">{row.activity.name}</span>
                     </td>
-                    <td>{row.submitter?.full_name ?? '—'}</td>
+                    <td>{row.submitter?.full_name ?? (row.submitted_by ? '—' : 'Equipe')}</td>
                     <td>{formatDate(row.created_at)}</td>
                     <td><span className={`review-status review-status--${row.status}`}>{statusLabels[row.status]}</span></td>
                     <td>{row.score ?? '—'}{row.activity.points !== null ? ` / ${row.activity.points}` : ''}</td>
@@ -451,7 +567,7 @@ export function ReviewSubmissionPage() {
           <PageTitle
             eyebrow="Revisão de envio"
             title={submission.activity.name}
-            description={`${submission.activity.campaign?.name ?? 'Campanha'} · ${submission.chapter.name} · enviado por ${submission.submitter?.full_name ?? 'membro'}`}
+            description={`${submission.activity.campaign?.name ?? 'Campanha'} · ${submission.chapter.name} · ${submission.submitted_by ? `enviado por ${submission.submitter?.full_name ?? 'membro'}` : 'pontuação lançada pela equipe'}`}
           />
           <div className="review-detail-grid">
             <section className="review-card">
@@ -561,7 +677,7 @@ export function ReviewSubmissionPage() {
 export function RankingPage() {
   const { client, profile } = useAuth()
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([])
-  const [records, setRecords] = useState<RankingRecord[]>([])
+  const [rankings, setRankings] = useState<ChapterRankingRecord[]>([])
   const [campaignId, setCampaignId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -574,22 +690,14 @@ export function RankingPage() {
       try {
         const campaignResult = await client.from('campaigns').select('id, name').order('name')
         if (campaignResult.error) throw campaignResult.error
-        const parsedRecords: RankingRecord[] = []
-        for (let offset = 0; ; offset += 500) {
-          const result = await client
-            .from('submissions')
-            .select(rankingSelection)
-            .eq('status', 'approved')
-            .order('id')
-            .range(offset, offset + 499)
-          if (result.error) throw result.error
-          const page = z.array(rankingRecordSchema).parse(result.data)
-          parsedRecords.push(...page)
-          if (page.length < 500) break
-        }
+        const result = await client.rpc('chapter_rankings', {
+          p_campaign_id: campaignId || null,
+        })
+        if (result.error) throw result.error
+        const parsedRankings = z.array(chapterRankingSchema).parse(result.data)
         const parsedCampaigns = campaignOptionsSchema.parse(campaignResult.data)
         if (!active) return
-        setRecords(parsedRecords)
+        setRankings(parsedRankings)
         setCampaigns(parsedCampaigns)
       } catch {
         if (active) setError('Não foi possível carregar o ranking.')
@@ -601,11 +709,7 @@ export function RankingPage() {
     return () => {
       active = false
     }
-  }, [client])
-
-  const visibleRankings = calculateChapterRankings(
-    records.filter((record) => !campaignId || record.activity.campaign_id === campaignId),
-  )
+  }, [client, campaignId])
 
   return (
     <ReviewFrame memberRanking={profile?.role === 'member'}>
@@ -625,17 +729,17 @@ export function RankingPage() {
         {error && <ReviewError>{error}</ReviewError>}
         {loading ? <ReviewLoading /> : (
           <ol className="ranking-list">
-            {visibleRankings.map((item, index) => (
-              <li key={item.chapterId}>
+            {rankings.map((item, index) => (
+              <li key={item.chapter_id}>
                 <span className="ranking-position">{index + 1}</span>
                 <span className="ranking-name">
-                  <strong>{item.chapterNumber ? `${item.chapterNumber}º ` : ''}{item.chapterName}</strong>
-                  <small>{item.approvedSubmissions} envio(s) aprovado(s)</small>
+                  <strong>{item.chapter_number ? `${item.chapter_number}º ` : ''}{item.chapter_name}</strong>
+                  <small>{item.approved_submissions} envio(s) aprovado(s)</small>
                 </span>
-                <strong className="ranking-score">{item.totalScore} pts</strong>
+                <strong className="ranking-score">{item.total_score} pts</strong>
               </li>
             ))}
-            {visibleRankings.length === 0 && <li className="review-muted">Ainda não há pontuações aprovadas.</li>}
+            {rankings.length === 0 && <li className="review-muted">Ainda não há pontuações aprovadas.</li>}
           </ol>
         )}
       </section>

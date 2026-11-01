@@ -37,6 +37,7 @@ export const activitySchema = z.object({
   points: z.number().int("Informe pontos inteiros.").min(0),
   dueAt: z.union([z.iso.datetime(), z.literal("")]),
   multipleSubmissions: z.boolean(),
+  reviewerManaged: z.boolean(),
 });
 
 export type CampaignFormValues = z.input<typeof campaignSchema>;
@@ -50,6 +51,7 @@ export const activityRecordSchema = z.object({
   points: z.number().int().nullable(),
   due_at: z.string().nullable(),
   multiple_submissions: z.boolean(),
+  reviewer_managed: z.boolean(),
 });
 
 export const campaignRecordSchema = z.object({

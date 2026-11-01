@@ -12,6 +12,20 @@ export const reviewFormSchema = z.object({
     .max(2000, 'O comentário deve ter no máximo 2.000 caracteres.'),
 })
 
+export const internalActivityPointsSchema = z.object({
+  activityId: z.string().uuid(),
+  chapterId: z.string().uuid(),
+  score: z.number().int('A pontuação precisa ser um número inteiro.').min(0),
+})
+
+export const chapterRankingSchema = z.object({
+  chapter_id: z.string().uuid(),
+  chapter_name: z.string(),
+  chapter_number: z.number().int().nullable(),
+  total_score: z.number().int().nonnegative(),
+  approved_submissions: z.number().int().nonnegative(),
+})
+
 const chapterSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -35,7 +49,7 @@ export const reviewSubmissionSchema = z.object({
   id: z.string().uuid(),
   activity_id: z.string().uuid(),
   chapter_id: z.string().uuid(),
-  submitted_by: z.string().uuid(),
+  submitted_by: z.string().uuid().nullable(),
   description: z.string().nullable(),
   status: z.enum(['draft', 'submitted', 'returned', 'approved']),
   score: z.number().int().nullable(),
@@ -68,56 +82,11 @@ export const reviewListItemSchema = reviewSubmissionSchema.omit({
   comments: true,
 })
 
-export const rankingRecordSchema = z.object({
-  id: z.string().uuid(),
-  chapter_id: z.string().uuid(),
-  status: z.enum(['draft', 'submitted', 'returned', 'approved']),
-  score: z.number().int().nullable(),
-  chapter: chapterSchema,
-  activity: z.object({
-    campaign_id: z.string().uuid().nullable(),
-    campaign: campaignSchema.nullable(),
-  }),
-})
-
 export type ReviewFormValues = z.infer<typeof reviewFormSchema>
+export type InternalActivityPointsValues = z.infer<typeof internalActivityPointsSchema>
+export type ChapterRankingRecord = z.infer<typeof chapterRankingSchema>
 export type ReviewSubmission = z.infer<typeof reviewSubmissionSchema>
 export type ReviewListItem = z.infer<typeof reviewListItemSchema>
-export type RankingRecord = z.infer<typeof rankingRecordSchema>
-
-export type ChapterRanking = {
-  chapterId: string
-  chapterName: string
-  chapterNumber: number | null
-  totalScore: number
-  approvedSubmissions: number
-}
-
-export function calculateChapterRankings(records: RankingRecord[]) {
-  const chapters = new Map<string, ChapterRanking>()
-
-  for (const record of records) {
-    if (record.status !== 'approved' || record.score === null) continue
-
-    const current = chapters.get(record.chapter_id) ?? {
-      chapterId: record.chapter_id,
-      chapterName: record.chapter.name,
-      chapterNumber: record.chapter.number,
-      totalScore: 0,
-      approvedSubmissions: 0,
-    }
-
-    current.totalScore += record.score
-    current.approvedSubmissions += 1
-    chapters.set(record.chapter_id, current)
-  }
-
-  return [...chapters.values()].sort(
-    (a, b) =>
-      b.totalScore - a.totalScore ||
-      a.chapterName.localeCompare(b.chapterName, 'pt-BR'),
-  )
-}
 
 export function csvCell(value: string | number | null | undefined) {
   let text = value === null || value === undefined ? '' : String(value)

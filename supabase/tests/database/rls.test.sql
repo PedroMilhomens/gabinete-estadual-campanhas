@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(68);
+select plan(77);
 
 insert into public.chapters (id, name, number, city)
 values
@@ -18,7 +18,8 @@ insert into public.activities (
   campaign_id,
   name,
   points,
-  multiple_submissions
+  multiple_submissions,
+  reviewer_managed
 )
 values
   (
@@ -26,6 +27,7 @@ values
     'c0000000-0000-0000-0000-000000000003',
     'Test activity',
     100,
+    false,
     false
   ),
   (
@@ -33,6 +35,15 @@ values
     'c0000000-0000-0000-0000-000000000003',
     'Multiple submission activity',
     100,
+    true,
+    false
+  ),
+  (
+    'd0000000-0000-0000-0000-000000000008',
+    'c0000000-0000-0000-0000-000000000003',
+    'Staff-scored activity',
+    40,
+    false,
     true
   );
 
@@ -235,6 +246,37 @@ select is((select count(*)::integer from storage.objects), 0, 'rejected user can
 
 set local request.jwt.claim.sub = '10000000-0000-0000-0000-000000000001';
 select ok(
+  not exists (
+    select 1
+    from public.activities
+    where id = 'd0000000-0000-0000-0000-000000000008'
+  ),
+  'members cannot read activities managed by reviewers'
+);
+select throws_ok(
+  $$insert into public.submissions (
+      activity_id, chapter_id, submitted_by, status
+    ) values (
+      'd0000000-0000-0000-0000-000000000008',
+      'a0000000-0000-0000-0000-000000000001',
+      auth.uid(),
+      'draft'
+    )$$,
+  '42501',
+  null,
+  'members cannot submit staff-scored activities'
+);
+select throws_ok(
+  $$select public.record_internal_activity_points(
+    'd0000000-0000-0000-0000-000000000008',
+    'a0000000-0000-0000-0000-000000000001',
+    20
+  )$$,
+  '42501',
+  null,
+  'members cannot record internal activity points'
+);
+select ok(
   not has_table_privilege('anon', 'public.audit_log', 'INSERT')
   and not has_table_privilege('authenticated', 'public.audit_log', 'INSERT')
   and not has_table_privilege('authenticated', 'public.audit_log', 'UPDATE')
@@ -256,7 +298,7 @@ select throws_ok(
   'member cannot change their own role'
 );
 select throws_ok(
-  $$update public.profiles set status = 'approved' where id = auth.uid()$$,
+  $$update public.profiles set status = 'rejected' where id = auth.uid()$$,
   '42501',
   null,
   'member cannot change their own status'
@@ -335,17 +377,12 @@ select throws_ok(
   null,
   'member cannot call the reviewer RPC'
 );
-select is(
-  (
-    with updated as (
-      update public.submissions
-      set status = 'approved'
-      where id = 'e0000000-0000-0000-0000-000000000005'
-      returning 1
-    )
-    select count(*)::integer from updated
-  ),
-  0,
+select throws_ok(
+  $$update public.submissions
+    set status = 'approved'
+    where id = 'e0000000-0000-0000-0000-000000000005'$$,
+  '42501',
+  null,
   'member cannot approve their own submission'
 );
 select throws_ok(
@@ -375,17 +412,13 @@ select is(
 );
 
 set local request.jwt.claim.sub = '80000000-0000-0000-0000-000000000008';
+update public.submissions
+set description = 'Changed by another chapter member'
+where id = 'e0000000-0000-0000-0000-000000000005';
 select is(
-  (
-    with updated as (
-      update public.submissions
-      set description = 'Changed by another chapter member'
-      where id = 'e0000000-0000-0000-0000-000000000005'
-      returning 1
-    )
-    select count(*)::integer from updated
-  ),
-  0,
+  (select description from public.submissions
+   where id = 'e0000000-0000-0000-0000-000000000005'),
+  'Chapter A submission',
   'member cannot edit another member submission in their chapter'
 );
 select throws_ok(
@@ -408,28 +441,22 @@ select throws_ok(
 );
 
 set local request.jwt.claim.sub = '30000000-0000-0000-0000-000000000003';
+update public.profiles
+set role = 'admin'
+where id = '10000000-0000-0000-0000-000000000001';
 select is(
-  (
-    with updated as (
-      update public.profiles set role = 'admin'
-      where id = '10000000-0000-0000-0000-000000000001'
-      returning 1
-    )
-    select count(*)::integer from updated
-  ),
-  0,
+  (select role::text from public.profiles
+   where id = '10000000-0000-0000-0000-000000000001'),
+  'member',
   'reviewer cannot change a user role'
 );
+update public.profiles
+set status = 'rejected'
+where id = '10000000-0000-0000-0000-000000000001';
 select is(
-  (
-    with updated as (
-      update public.profiles set status = 'rejected'
-      where id = '10000000-0000-0000-0000-000000000001'
-      returning 1
-    )
-    select count(*)::integer from updated
-  ),
-  0,
+  (select status::text from public.profiles
+   where id = '10000000-0000-0000-0000-000000000001'),
+  'approved',
   'reviewer cannot change a user status'
 );
 select throws_ok(
@@ -464,6 +491,64 @@ select lives_ok(
   )$$,
   'review RPC records a valid decision'
 );
+select throws_ok(
+  $$select public.record_internal_activity_points(
+    'd0000000-0000-0000-0000-000000000008',
+    'a0000000-0000-0000-0000-000000000001',
+    41
+  )$$,
+  '23514',
+  null,
+  'reviewer cannot record points above the activity limit'
+);
+select throws_ok(
+  $$select public.record_internal_activity_points(
+    'd0000000-0000-0000-0000-000000000008',
+    null,
+    20
+  )$$,
+  '23514',
+  null,
+  'reviewer must select a chapter for internal points'
+);
+select lives_ok(
+  $$select public.record_internal_activity_points(
+    'd0000000-0000-0000-0000-000000000008',
+    'a0000000-0000-0000-0000-000000000001',
+    25
+  )$$,
+  'reviewer can record a valid score for an internal activity'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.submissions
+    where activity_id = 'd0000000-0000-0000-0000-000000000008'
+      and chapter_id = 'a0000000-0000-0000-0000-000000000001'
+      and submitted_by is null
+      and status = 'approved'
+      and score = 25
+      and reviewed_by = auth.uid()
+  ),
+  1,
+  'internal score is recorded as approved and attributed to the reviewer'
+);
+set local request.jwt.claim.sub = '10000000-0000-0000-0000-000000000001';
+select is(
+  (
+    select total_score::integer
+    from public.chapter_rankings(null)
+    where chapter_id = 'a0000000-0000-0000-0000-000000000001'
+  ),
+  25,
+  'member ranking includes the internal score for their own chapter'
+);
+select is(
+  (select count(*)::integer from public.chapter_rankings(null)),
+  1,
+  'member ranking does not expose other chapters'
+);
+set local request.jwt.claim.sub = '30000000-0000-0000-0000-000000000003';
 select is(
   (select body from public.comments
     where submission_id = 'f0000000-0000-0000-0000-000000000006'

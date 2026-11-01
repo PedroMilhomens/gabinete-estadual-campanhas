@@ -1,35 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  calculateChapterRankings,
+  chapterRankingSchema,
   csvCell,
+  internalActivityPointsSchema,
   reviewFormSchema,
 } from './review-schema'
-
-const chapterA = '11111111-1111-4111-8111-111111111111'
-const chapterB = '22222222-2222-4222-8222-222222222222'
-
-function rankingRecord(
-  chapterId: string,
-  name: string,
-  score: number | null,
-  status: 'draft' | 'submitted' | 'returned' | 'approved',
-) {
-  return {
-    id: '33333333-3333-4333-8333-333333333333',
-    chapter_id: chapterId,
-    status,
-    score,
-    chapter: {
-      id: chapterId,
-      name,
-      number: chapterId === chapterA ? 1 : 2,
-    },
-    activity: {
-      campaign_id: '44444444-4444-4444-8444-444444444444',
-      campaign: { id: '44444444-4444-4444-8444-444444444444', name: 'Campaign' },
-    },
-  }
-}
 
 describe('reviewFormSchema', () => {
   it('accepts a bounded score with a decision and comment', () => {
@@ -67,32 +42,34 @@ describe('reviewFormSchema', () => {
   })
 })
 
-describe('calculateChapterRankings', () => {
-  it('sums approved scores and excludes unreviewed submissions', () => {
+describe('internalActivityPointsSchema', () => {
+  const record = {
+    activityId: '11111111-1111-4111-8111-111111111111',
+    chapterId: '22222222-2222-4222-8222-222222222222',
+    score: 10,
+  }
+
+  it('accepts a valid staff scoring record', () => {
+    expect(internalActivityPointsSchema.safeParse(record).success).toBe(true)
+  })
+
+  it('rejects invalid identifiers and fractional scores', () => {
+    expect(internalActivityPointsSchema.safeParse({ ...record, activityId: 'invalid' }).success).toBe(false)
+    expect(internalActivityPointsSchema.safeParse({ ...record, score: 1.5 }).success).toBe(false)
+  })
+})
+
+describe('chapterRankingSchema', () => {
+  it('validates aggregated ranking rows', () => {
     expect(
-      calculateChapterRankings([
-        rankingRecord(chapterA, 'Capítulo A', 12, 'approved'),
-        rankingRecord(chapterA, 'Capítulo A', 8, 'approved'),
-        rankingRecord(chapterB, 'Capítulo B', 50, 'submitted'),
-        rankingRecord(chapterB, 'Capítulo B', null, 'approved'),
-        rankingRecord(chapterB, 'Capítulo B', 19, 'approved'),
-      ]),
-    ).toEqual([
-      {
-        chapterId: chapterB,
-        chapterName: 'Capítulo B',
-        chapterNumber: 2,
-        totalScore: 19,
-        approvedSubmissions: 1,
-      },
-      {
-        chapterId: chapterA,
-        chapterName: 'Capítulo A',
-        chapterNumber: 1,
-        totalScore: 20,
-        approvedSubmissions: 2,
-      },
-    ].sort((a, b) => b.totalScore - a.totalScore))
+      chapterRankingSchema.safeParse({
+        chapter_id: '11111111-1111-4111-8111-111111111111',
+        chapter_name: 'Capítulo A',
+        chapter_number: 1,
+        total_score: 25,
+        approved_submissions: 2,
+      }).success,
+    ).toBe(true)
   })
 })
 

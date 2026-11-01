@@ -136,7 +136,11 @@ Approved reviewers and admins can filter submitted work by chapter, campaign,
 activity, and status; record a score within the activity limit with an approval
 or return comment; view chapter rankings; and export submitted work as CSV.
 Review decisions and their comments are written together through a database
-function. Members see rankings only for data permitted by their chapter access.
+function. Members see only their own chapter in the ranking; internal activity
+scores are included in totals without exposing the activity to members.
+Admins can mark an activity as internal when creating or editing it; internal
+activities are hidden from members, and reviewers or admins can record an
+approved score for a chapter from the review screen.
 The public `/privacy` and `/terms` pages describe data handling and use.
 Approved admins can export an account's profile, auth email, submissions,
 comments, audit entries, and attachment metadata with five-minute signed

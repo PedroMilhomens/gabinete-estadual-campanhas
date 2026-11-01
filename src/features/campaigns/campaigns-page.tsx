@@ -19,7 +19,7 @@ import {
 import "./campaigns.css";
 
 const campaignSelection =
-  "id, name, starts_at, ends_at, active, activities(id, campaign_id, name, description, points, due_at, multiple_submissions)";
+  "id, name, starts_at, ends_at, active, activities(id, campaign_id, name, description, points, due_at, multiple_submissions, reviewer_managed)";
 
 const activityHours = Array.from({ length: 24 }, (_, hour) =>
   String(hour).padStart(2, "0"),
@@ -121,6 +121,7 @@ function ActivityRow({
           <span>{activity.points ?? 0} pontos</span>
           {dueAt && <span>Prazo: {dueAt}</span>}
           {activity.multiple_submissions && <span>Envios múltiplos</span>}
+          {activity.reviewer_managed && <span>Lançamento pela equipe</span>}
         </div>
       </div>
       {admin && (
@@ -143,7 +144,7 @@ function ActivityRow({
           </button>
         </div>
       )}
-      {member && (
+      {member && !activity.reviewer_managed && (
         <Link
           className="campaign-button campaign-button--secondary activity-submit-link"
           to={`/activities/${activity.id}/submit`}
@@ -290,6 +291,7 @@ function ActivityForm({
     points: activity?.points ?? 0,
     dueAt: "",
     multipleSubmissions: activity?.multiple_submissions ?? false,
+    reviewerManaged: activity?.reviewer_managed ?? false,
   });
   const [dueDate, setDueDate] = useState(dueAt.date);
   const [dueHour, setDueHour] = useState(dueAt.time.slice(0, 2));
@@ -434,6 +436,25 @@ function ActivityForm({
           <strong>Permitir múltiplos envios por capítulo</strong>
           <small>
             Cada capítulo poderá enviar a atividade quantas vezes quiser.
+          </small>
+        </span>
+      </label>
+      <label className="campaign-checkbox campaign-checkbox--multiple">
+        <input
+          type="checkbox"
+          checked={values.reviewerManaged}
+          onChange={(event) =>
+            setValues((current) => ({
+              ...current,
+              reviewerManaged: event.target.checked,
+            }))
+          }
+        />
+        <span>
+          <strong>Atividade interna, lançada pela equipe</strong>
+          <small>
+            Não aparecerá para os membros. Reviewer ou admin registra os pontos
+            de cada capítulo.
           </small>
         </span>
       </label>
@@ -643,6 +664,7 @@ export function CampaignsPage() {
       points: values.points,
       due_at: dueAt,
       multiple_submissions: values.multipleSubmissions,
+      reviewer_managed: values.reviewerManaged,
     };
 
     try {
@@ -652,14 +674,14 @@ export function CampaignsPage() {
             .update(payload)
             .eq("id", id)
             .select(
-              "id, campaign_id, name, description, points, due_at, multiple_submissions",
+              "id, campaign_id, name, description, points, due_at, multiple_submissions, reviewer_managed",
             )
             .single()
         : await client
             .from("activities")
             .insert(payload)
             .select(
-              "id, campaign_id, name, description, points, due_at, multiple_submissions",
+              "id, campaign_id, name, description, points, due_at, multiple_submissions, reviewer_managed",
             )
             .single();
 
@@ -1037,4 +1059,5 @@ const activitySchemaForRecord = z.object({
   points: z.number().int().nullable(),
   due_at: z.string().nullable(),
   multiple_submissions: z.boolean(),
+  reviewer_managed: z.boolean(),
 });
