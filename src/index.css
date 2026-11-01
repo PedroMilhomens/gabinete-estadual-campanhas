@@ -108,26 +108,6 @@
   --sidebar-ring: oklch(0.708 0 0)
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: var(--brand-blue);
-    --bg: #fff;
-    --border: var(--neutral-200);
-    --code-bg: var(--neutral-100);
-    --accent: #e4efe6;
-    --accent-bg: rgb(0 125 0 / 10%);
-    --accent-border: rgb(0 125 0 / 50%);
-    --social-bg: rgb(243 244 246 / 50%);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
 #root {
   width: 100%;
   margin: 0;
@@ -231,37 +211,315 @@ code {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+  --text: #d3dce8;
+  --text-h: #e3edf8;
+  --bg: #111923;
+  --border: #354354;
+  --code-bg: #263445;
+  --brand-blue: #83b9e5;
+  --brand-green: #78c982;
+  --brand-gold: #d6bd78;
+  --gold: var(--brand-gold);
+  --neutral-50: #1b2734;
+  --neutral-100: #243241;
+  --neutral-200: #354354;
+  --neutral-500: #b6c1ce;
+  --neutral-600: #b8c3d0;
+  --neutral-700: #d3dce8;
+  --accent: #263b36;
+  --accent-foreground: #d9e8dc;
+  --accent-bg: rgb(120 201 130 / 16%);
+  --accent-border: rgb(120 201 130 / 55%);
+  --social-bg: rgb(255 255 255 / 5%);
+  --shadow:
+    rgba(0, 0, 0, 0.35) 0 10px 15px -3px, rgba(0, 0, 0, 0.2) 0 4px 6px -2px;
+  --background: #111923;
+  --foreground: #e8edf4;
+  --card: #1a2531;
+  --card-foreground: #e8edf4;
+  --popover: #202c3a;
+  --popover-foreground: #e8edf4;
+  --primary: #83b9e5;
+  --primary-foreground: #102030;
+  --secondary: #2a3a49;
+  --secondary-foreground: #e8edf4;
+  --muted: #243241;
+  --muted-foreground: #b6c1ce;
+  --accent: #263b36;
+  --destructive: #f08a91;
+  --input: #354354;
+  --ring: #83b9e5;
+  --chart-1: #83b9e5;
+  --chart-2: #78c982;
+  --chart-3: #d6bd78;
+  --chart-4: #b69ce0;
+  --chart-5: #e28d87;
+  --sidebar: #17212c;
+  --sidebar-foreground: #e8edf4;
+  --sidebar-primary: #83b9e5;
+  --sidebar-primary-foreground: #102030;
+  --sidebar-accent: #263443;
+  --sidebar-accent-foreground: #e8edf4;
+  --sidebar-border: #354354;
+  --sidebar-ring: #83b9e5;
+}
+
+.theme-toggle {
+  position: fixed;
+  z-index: 1000;
+  right: 20px;
+  top: 16px;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow);
+  font: 650 13px/1 var(--sans);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-gold);
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.theme-toggle--header {
+  position: static;
+  z-index: auto;
+  flex: 0 0 auto;
+}
+
+.theme-toggle--legal {
+  top: auto;
+  bottom: 20px;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body,
+html.dark #root {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+html.dark :is(
+    .auth-page,
+    .campaign-page,
+    .submission-page,
+    .admin-page,
+    .review-page,
+    .legal-page,
+    .app-shell
+  ) {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+html.dark :is(
+    .auth-card,
+    .status-panel,
+    .campaign-card,
+    .campaign-panel,
+    .campaign-modal,
+    .submission-panel,
+    .my-submission-card,
+    .review-card,
+    .review-table-wrap,
+    .admin-table-wrap,
+    .admin-empty,
+    .legal-card,
+    .app-dashboard-card,
+    .app-shell-header,
+    .app-shell-sidebar,
+    .app-shell-mobile-dialog,
+    .app-shell-user-popover
+  ) {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+html.dark :is(
+    .auth-heading h1,
+    .auth-card > h1,
+    .brand-name,
+    .form-field,
+    .campaign-brand,
+    .campaign-list-heading h1,
+    .campaign-detail-heading h1,
+    .campaign-card h2,
+    .campaign-card h3,
+    .campaign-field,
+    .submission-header .campaign-brand,
+    .submission-title h1,
+    .my-submissions-heading h1,
+    .submission-detail-heading h1,
+    .submission-section-title h2,
+    .admin-title-row h1,
+    .admin-table td,
+    .review-title h1,
+    .review-card h2,
+    .review-table td,
+    .review-form label,
+    .legal-header,
+    .legal-content,
+    .legal-content h1,
+    .legal-content h2,
+    .legal-content p
+  ) {
+  color: var(--foreground);
+}
+
+html.dark :is(
+    .auth-page,
+    .access-page,
+    .campaign-page,
+    .submission-page,
+    .admin-page,
+    .review-page,
+    .legal-page
+  )
+  :is(input:not([type='checkbox']), select, textarea) {
+  border-color: var(--input);
+  background: #17212c;
+  color: var(--foreground);
+  color-scheme: dark;
+}
+
+html.dark :is(
+    .campaign-page,
+    .submission-page,
+    .admin-page,
+    .review-page,
+    .legal-page
+  )
+  :is(input, textarea, select)::placeholder {
+  color: var(--muted-foreground);
+}
+
+html.dark .auth-page {
+  background:
+    radial-gradient(ellipse at 82% 12%, rgb(53 82 112 / 28%), transparent 28rem),
+    radial-gradient(ellipse at 12% 88%, rgb(59 48 89 / 24%), transparent 24rem),
+    var(--background);
+}
+
+html.dark .campaign-page,
+html.dark .submission-page {
+  background:
+    radial-gradient(ellipse at 86% 8%, rgb(53 82 112 / 24%), transparent 29rem),
+    var(--background);
+}
+
+html.dark :is(.campaign-page, .submission-page) [class*='card'],
+html.dark :is(.campaign-page, .submission-page) [class*='panel'],
+html.dark .review-page :is(.review-table-wrap, .review-export-card),
+html.dark .admin-page :is(.admin-table-wrap, .admin-table tbody tr) {
+  border-color: var(--border);
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+html.dark .review-header,
+html.dark .review-card,
+html.dark .review-table-wrap,
+html.dark .review-filters select,
+html.dark .review-form input,
+html.dark .review-form select,
+html.dark .review-form textarea,
+html.dark .review-campaign-filter select {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+
+html.dark .review-table th,
+html.dark .admin-table th {
+  border-color: var(--border);
+  background: #202c3a;
+  color: var(--muted-foreground);
+}
+
+html.dark .review-table td,
+html.dark .admin-table td {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+html.dark .review-page :is(
+    .review-title > p:last-child,
+    .review-muted,
+    .review-table-secondary,
+    .review-brand small,
+    .review-filters label,
+    .review-form label
+  ),
+html.dark .campaign-page :is(
+    .campaign-list-heading > div > p:last-child,
+    .campaign-card-dates,
+    .campaign-card p,
+    .campaign-brand small
+  ),
+html.dark .submission-page :is(
+    .submission-title > p,
+    .my-submissions-heading p,
+    .submission-detail-heading p,
+    .submission-breadcrumb,
+    .submission-nav a
+  ),
+html.dark .admin-page :is(.admin-subtitle, .admin-table td),
+html.dark .legal-content section p {
+  color: var(--muted-foreground);
+}
+
+html.dark :is(.auth-card, .access-page, .campaign-page, .submission-page, .admin-page, .review-page, .legal-page)
+  :is(.form-alert, [role='alert']) {
+  border-color: rgb(240 138 145 / 35%);
+  background: rgb(121 39 48 / 25%);
+  color: #ffafb5;
+}
+
+@media (max-width: 480px) {
+  .theme-toggle {
+    right: 14px;
+    top: 14px;
+    min-height: 42px;
+    padding: 0 13px;
+  }
+
+  .theme-toggle--header {
+    top: auto;
+    right: auto;
+    padding: 0 11px;
+  }
+
+  .theme-toggle--header span {
+    display: none;
+  }
+
+  .theme-toggle--legal {
+    top: auto;
+    bottom: 14px;
+  }
 }
 
 @layer base {

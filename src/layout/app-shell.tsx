@@ -17,6 +17,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import emblem from '../assets/brand/emblema-virtudes-atemporais.png'
 import { SITE_NAME } from '../config/site'
 import { useAuth } from '../features/auth/use-auth'
+import { ThemeToggle } from '../theme/theme-provider'
 import './app-shell.css'
 
 type NavigationItem = {
@@ -180,6 +181,7 @@ export function AuthenticatedShell({ children }: { children?: ReactNode }) {
           <span>{SITE_NAME}</span>
         </Link>
         <div className="app-shell-header-actions">
+          <ThemeToggle placement="header" />
           {profile && (
             <UserMenu
               fullName={profile.full_name}

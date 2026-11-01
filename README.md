@@ -3,6 +3,12 @@
 Portal de campanhas estaduais, construído com React, TypeScript e Vite. O nome
 visível da aplicação é definido em `src/config/site.ts`.
 
+## Interface e tema
+
+O botão de tema alterna entre os modos claro e escuro em todas as páginas. A
+escolha fica salva neste navegador; na primeira visita, o portal segue a
+preferência de aparência configurada no sistema operacional.
+
 The application uses React and Vite with ESLint for development checks.
 
 Currently, two official plugins are available:

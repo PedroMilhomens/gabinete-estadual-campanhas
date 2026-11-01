@@ -19,6 +19,7 @@ import {
 import { AuthProvider } from "./features/auth/auth-provider";
 import "./features/auth/auth.css";
 import { AuthenticatedShell } from "./layout/app-shell";
+import { ThemeProvider, ThemeToggle } from "./theme/theme-provider";
 import { useAuth } from "./features/auth/use-auth";
 import type { UserProfile } from "./features/auth/auth-schema";
 import { supabase, supabaseConfigurationError } from "./lib/supabase";
@@ -268,90 +269,96 @@ function ConfigurationError() {
 
 function App() {
   return (
-    <BrowserRouter>
-      {!supabase ? (
-        <Suspense fallback={<RouteLoading />}>
-          <Routes>
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="*" element={<ConfigurationError />} />
-          </Routes>
-        </Suspense>
-      ) : (
-        <AuthProvider client={supabase}>
+    <ThemeProvider>
+      <BrowserRouter>
+        <ThemeToggle />
+        {!supabase ? (
           <Suspense fallback={<RouteLoading />}>
             <Routes>
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
-              <Route element={<PublicRoute />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-              </Route>
-              <Route
-                path="/forgot-password"
-                element={<ForgotPasswordPage />}
-              />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route element={<AuthenticatedShell />}>
-                <Route
-                  path="/awaiting-approval"
-                  element={<AwaitingApprovalPage />}
-                />
-                <Route path="/admin/users" element={<AdminUsersPage />} />
-                <Route path="/campaigns" element={<CampaignsPage />} />
-                <Route
-                  path="/campaigns/:campaignId"
-                  element={<CampaignsPage />}
-                />
-                <Route
-                  path="/activities/:activityId/submit"
-                  element={<SubmissionFormPage />}
-                />
-                <Route path="/my-submissions" element={<MySubmissionsPage />} />
-                <Route
-                  path="/my-submissions/:submissionId"
-                  element={<SubmissionDetailPage />}
-                />
-                <Route
-                  path="/review"
-                  element={
-                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                      <ReviewerSubmissionsPage />
-                    </RoleRoute>
-                  }
-                />
-                <Route
-                  path="/review/:submissionId"
-                  element={
-                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                      <ReviewSubmissionPage />
-                    </RoleRoute>
-                  }
-                />
-                <Route
-                  path="/ranking"
-                  element={
-                    <RoleRoute allowedRoles={["member", "reviewer", "admin"]}>
-                      <RankingPage />
-                    </RoleRoute>
-                  }
-                />
-                <Route
-                  path="/export"
-                  element={
-                    <RoleRoute allowedRoles={["reviewer", "admin"]}>
-                      <SubmissionExportPage />
-                    </RoleRoute>
-                  }
-                />
-                <Route path="/" element={<ApprovedRoute />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<ConfigurationError />} />
             </Routes>
           </Suspense>
-        </AuthProvider>
-      )}
-    </BrowserRouter>
+        ) : (
+          <AuthProvider client={supabase}>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route element={<PublicRoute />}>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                </Route>
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route element={<AuthenticatedShell />}>
+                  <Route
+                    path="/awaiting-approval"
+                    element={<AwaitingApprovalPage />}
+                  />
+                  <Route path="/admin/users" element={<AdminUsersPage />} />
+                  <Route path="/campaigns" element={<CampaignsPage />} />
+                  <Route
+                    path="/campaigns/:campaignId"
+                    element={<CampaignsPage />}
+                  />
+                  <Route
+                    path="/activities/:activityId/submit"
+                    element={<SubmissionFormPage />}
+                  />
+                  <Route
+                    path="/my-submissions"
+                    element={<MySubmissionsPage />}
+                  />
+                  <Route
+                    path="/my-submissions/:submissionId"
+                    element={<SubmissionDetailPage />}
+                  />
+                  <Route
+                    path="/review"
+                    element={
+                      <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                        <ReviewerSubmissionsPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path="/review/:submissionId"
+                    element={
+                      <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                        <ReviewSubmissionPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path="/ranking"
+                    element={
+                      <RoleRoute allowedRoles={["member", "reviewer", "admin"]}>
+                        <RankingPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path="/export"
+                    element={
+                      <RoleRoute allowedRoles={["reviewer", "admin"]}>
+                        <SubmissionExportPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route path="/" element={<ApprovedRoute />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        )}
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

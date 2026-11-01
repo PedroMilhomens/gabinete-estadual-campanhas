@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { AuthContext } from '../features/auth/auth-context'
 import type { AuthContextValue } from '../features/auth/auth-context'
 import { AuthenticatedShell } from './app-shell'
+import { ThemeProvider } from '../theme/theme-provider'
 
 const session: Session = {
   access_token: 'test-access-token',
@@ -45,17 +46,20 @@ function renderShell() {
 
   return render(
     <AuthContext.Provider value={value}>
-      <MemoryRouter>
-        <AuthenticatedShell>
-          <main>Conteúdo da página</main>
-        </AuthenticatedShell>
-      </MemoryRouter>
+      <ThemeProvider>
+        <MemoryRouter>
+          <AuthenticatedShell>
+            <main>Conteúdo da página</main>
+          </AuthenticatedShell>
+        </MemoryRouter>
+      </ThemeProvider>
     </AuthContext.Provider>,
   )
 }
 
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
   vi.restoreAllMocks()
 })
 
