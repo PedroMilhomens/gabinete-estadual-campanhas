@@ -178,6 +178,21 @@ build and publishes the new frontend. Database migrations, Edge Functions, and
 provider secrets remain separate Supabase setup/deployment steps; they are not
 deployed by a frontend push.
 
+## Alternative: deploying the frontend to Vercel
+
+The root `vercel.json` configures the Vite build and `dist` output, security
+headers, and cache behavior. It serves existing static files first, returns
+404 for missing assets, and rewrites extensionless app routes to `index.html`
+for client-side routing.
+
+1. Import the repository into Vercel and set the Production environment
+   variables listed above: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
+   `VITE_TURNSTILE_SITE_KEY`. Use a separate staging project and Turnstile key
+   for Preview deployments.
+2. Add the deployed hostname to Supabase Auth's Site URL and allowed redirect
+   URLs, and to the Turnstile site's allowed hostnames.
+3. Verify direct navigation and refresh on both public and authenticated routes.
+
 Static response headers are configured in `public/_headers` for Netlify and
 Cloudflare Pages. Backup, restore, audit-log operation, and incident-response
 procedures are documented in [docs/OPERATIONS.md](./docs/OPERATIONS.md).
